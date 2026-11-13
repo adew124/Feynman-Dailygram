@@ -151,7 +151,21 @@ export function mountGame(root: HTMLElement, puzzle: Puzzle, hooks: GameHooks = 
       </div>`;
   }
 
+  /** Remember which control had keyboard focus so a re-render does not drop it. */
+  const FOCUS_ATTRS = ['data-particle', 'data-tab', 'data-anti', 'data-clear', 'data-check', 'data-giveup', 'data-share', 'data-stats', 'data-edge-hit'];
+  function focusKey(): string | null {
+    const el = document.activeElement;
+    if (!el || !root.contains(el)) return null;
+    for (const a of FOCUS_ATTRS) {
+      if (el.hasAttribute(a)) return el.getAttribute(a) ? `[${a}="${el.getAttribute(a)}"]` : `[${a}]`;
+    }
+    return null;
+  }
+  let wantFocus: string | null = null;
+
   function render() {
+    const restore = wantFocus ?? focusKey();
+    wantFocus = null;
     const playing = state.status === 'playing';
     const cur = selected ? state.answers[selected] : null;
     // palette shows the PHYSICAL particle for the selected edge so the chosen one highlights
@@ -183,6 +197,7 @@ export function mountGame(root: HTMLElement, puzzle: Puzzle, hooks: GameHooks = 
       <div class="toast${toast ? ' show' : ''}" role="status">${escapeXml(toast)}</div>`;
     hooks.afterRender?.(root);
     startCountdown();
+    if (restore) root.querySelector<HTMLElement>(restore)?.focus({ preventScroll: true });
   }
 
   function startCountdown() {
@@ -293,9 +308,10 @@ export function mountGame(root: HTMLElement, puzzle: Puzzle, hooks: GameHooks = 
   root.addEventListener('click', onClick);
 
   // Tap handling for edges is delegated, so it survives innerHTML re-renders.
-  const offEdge = onEdgeTap(root, (edgeId) => {
+  const offEdge = onEdgeTap(root, (edgeId, viaKeyboard) => {
     if (state.status !== 'playing' || !hiddenSet.has(edgeId)) return;
     selected = edgeId;
+    if (viaKeyboard) wantFocus = `[data-edge-hit="${edgeId}"]`;
     confirmGiveUp = false;
     render();
   });

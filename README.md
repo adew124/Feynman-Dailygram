@@ -1,53 +1,76 @@
 # Daily Feynman Diagram Puzzle
 
-A Wordle-style daily puzzle: fill in the missing particles on a Feynman diagram.
-Static site (Vite + TypeScript), no backend.
+A Wordle-style daily puzzle for particle physics. Each day shows a Feynman diagram with some lines hidden;
+fill in the missing particles so that every vertex is a legal Standard Model vertex and conserves charge,
+baryon number and each lepton family number. A static site (Vite + TypeScript, no backend) that works on a phone.
+
+**Features**
+- **Daily puzzle**: the same puzzle for everyone each local day, easy on Monday up to hard on Sunday. 3 attempts,
+  per-vertex hints, spoiler-free emoji share card, streaks and stats.
+- **Practice**: unlimited random puzzles, filterable by difficulty (1-7).
+- **Create**: a puzzle editor (drag vertices, draw lines, pick particles, hide lines) that shares a puzzle as a link.
+- **Library**: 51 real processes, from beta decay and e+e- -> mu+mu- to penguins, meson-mixing boxes and Higgs loops.
+- Any valid assignment is accepted, not just a stored answer key.
 
 ## Run locally
+Requires Node 20 or newer.
+
 ```bash
 npm install
-npm test        # physics engine unit tests
-npm run dev     # open the printed local URL (works well in a phone-sized window)
+npm run dev        # open the printed local URL (use a phone-sized window to check mobile)
+npm test           # unit tests (physics engine, renderer, game logic, library, editor)
+npm run typecheck  # TypeScript
+npm run build      # production build into dist/
+npm run preview    # serve the production build locally
 ```
 
-## Status
-- [x] Phase 1: physics engine + tests (`src/engine`)
-- [x] Phase 2: SVG renderer (`src/render`, demo gallery at `#/demo`)
-- [x] Phase 3: daily gameplay (`src/game`, `src/puzzle`, `src/ui`)
-- [x] Phase 4: process library (51 processes) + practice mode
-- [x] Phase 5: editor + sharing (`src/editor`, `src/ui/editor.ts`)
-- [ ] Phase 6: polish + deploy
+Preview another day's daily puzzle with `?date=2026-11-15` (it does not touch your streak).
+Other pages: `#/practice`, `#/editor`, `#/library`.
 
-## Engine conventions
-- Edge `particle` = the particle traveling **along the edge's arrow**. If the arrow
-  points backward in time (x decreases), the physical object is the antiparticle
-  (`src/engine/orientation.ts`).
-- Vertex rules (`src/engine/vertices.ts`) list particles **all-incoming**; outgoing
-  particles count as incoming antiparticles.
-- Any assignment making every vertex an allowed SM vertex with conserved charge,
-  baryon number and lepton-family numbers is accepted — there is no answer key.
+## Deploy to GitHub Pages
+The repository includes a workflow, `.github/workflows/deploy.yml`, that typechecks, runs the tests, builds and
+publishes the site on every push to `main` (or `master`).
 
-## Daily puzzle
-- Everyone gets the same puzzle on a given local date: the date seeds a PRNG that picks a
-  library process (difficulty = weekday, Monday 1 ... Sunday 7; nearest available if the
-  library has no entry of that difficulty) and which edges to hide.
-- A hide set is accepted only if the engine can solve it, has at most 60 valid completions,
-  and any hidden *external* leg is forced to a single particle (so the process can't change).
-- Any assignment that validates is correct (e.g. the e+e- -> mu+mu- propagator may be gamma, Z or H).
-- 3 attempts; each wrong guess highlights vertices and explains which law is violated.
-  Edge colors: green = both end vertices valid, amber = one, red = none. The emoji share uses the same marks.
-- Difficulty <= 3 keeps the line style (wavy/curly/...) of hidden edges as a free hint.
-- Preview another day: `?date=2026-11-10` (does not affect streaks).
-- Progress and stats live in localStorage under the `fdp:v1:` prefix.
+1. Create an empty repository on GitHub and push this folder to it:
+   ```bash
+   git remote add origin https://github.com/<you>/<repo>.git
+   git branch -M main
+   git push -u origin main
+   ```
+2. In the repository, open **Settings -> Pages** and set **Source** to **GitHub Actions**.
+3. Open the **Actions** tab: the "Deploy to GitHub Pages" run builds the site. When it is green the site is live at
+   `https://<you>.github.io/<repo>/`.
 
-## Library and practice mode
-- **Practice** (`#/practice`): unlimited random puzzles, filterable by difficulty 1-7. Nothing is saved or counted in stats.
-- **Library** (`#/library`): browse every process with its full diagram, handy for checking layouts.
-- The library lives in `src/puzzle/library/*.json` (qed, qcd, weak, higgs, loops). Every file is an
-  array of processes and files are picked up automatically; there is nothing to register.
+Notes:
+- The build uses relative asset paths (`base: './'`) and hash routing (`#/practice`, `#p=...`), so it works under any
+  repository name and with a custom domain, and needs no server rewrites.
+- If the run fails on `npm test`, the log shows which test failed; the build step only runs after the tests pass.
+- Manual alternative: run `npm run build` and upload the contents of `dist/` to any static host.
+- "Daily" is based on the player's local date, so the puzzle changes at local midnight.
+
+## How the puzzle works
+- **Edges and arrows.** A diagram is a graph with time flowing left to right. Each edge stores the particle that
+  travels **along its arrow**. If the arrow points backward in time, the physical particle is the antiparticle
+  (`src/engine/orientation.ts`). The UI always shows and lets you pick the *physical* label.
+- **Vertices.** `src/engine/vertices.ts` lists every allowed vertex (QED, QCD including 3- and 4-gluon, weak charged
+  current with the full CKM matrix, weak neutral current, Higgs couplings, gauge self-interactions) with all lines
+  counted as incoming. Neutrino oscillation is ignored.
+- **Validation.** `src/engine/validator.ts` checks each vertex for the allowed-vertex list and for conservation of
+  charge, baryon number and lepton family numbers, and returns per-vertex hint messages.
+- **Answers.** Anything that makes the whole diagram valid is correct (for example the e+e- -> mu+mu- propagator may be
+  gamma, Z or H). Revealed lines can never change.
+- **Daily selection.** The date seeds a PRNG that picks a library process (difficulty = weekday, Monday 1 ... Sunday 7)
+  and which lines to hide. A hide set is only used if the engine can solve it, it has at most 60 valid completions, and
+  every hidden *external* leg is forced to a single particle (so the process cannot change).
+- **Hints and sharing.** A wrong guess marks vertices red or green and names the violated law. Lines turn green, amber or
+  red by how many of their end vertices are valid; the emoji card uses the same marks and never includes the answer.
+  Difficulty 1-3 keeps the line style (wavy, curly, ...) of hidden lines as a free hint.
+- **Storage.** Progress, stats, theme and the editor draft live in `localStorage` under the `fdp:v1:` prefix, and the
+  app still works if storage is unavailable.
 
 ## Adding a process to the library
-Add an object to any array in `src/puzzle/library/*.json` (or create a new `*.json` file with an array):
+Add an object to any array in `src/puzzle/library/*.json` (or create a new `*.json` file containing an array; files are
+picked up automatically, with nothing to register):
 
 ```json
 {
@@ -68,47 +91,57 @@ Add an object to any array in `src/puzzle/library/*.json` (or create a new `*.js
 }
 ```
 
-- **Coordinates:** `x` is time (left to right), `y` grows downward. Incoming legs go on the left edge,
-  outgoing legs on the right edge. A leg exactly above or below its vertex (same `x`) is fine.
-- **`legs`**: `[edgeId, "in"|"out", externalNode, vertex, particle]`. Write the **physical** particle
-  (what you would label the leg). The loader works out arrow direction and the stored particle, so you
-  never think about backward arrows for external legs. Incoming particles flow toward the vertex.
-- **`edges`**: internal lines `[edgeId, from, to, particle, bend?]`. `particle` is the particle traveling
-  **along the arrow** from `from` to `to`; fermion arrows follow the fermion-number flow, even when that
-  runs backward in time. For bosons the direction is arbitrary but the charge must be consistent
-  (a W⁻ from v1 to v2 is the same as a W⁺ from v2 to v1). `bend` (layout units, negative = up for a
-  left-to-right edge) curves an edge; parallel edges between two vertices are fanned out automatically.
-- **Particle ids:** `e- e+ mu- mu+ tau- tau+ nu_e anti_nu_e nu_mu anti_nu_mu nu_tau anti_nu_tau`,
-  quarks `u d c s t b` and `ubar dbar cbar sbar tbar bbar`, bosons `gamma Z g H W+ W-`.
-- **`hideSets`** (strongly recommended): lists of edge ids that make good puzzles. A set is only used if the
-  engine can solve it, it has at most 60 valid completions, and any hidden *external* leg is forced to a single
-  answer. Hiding an external that could be several things (a photon vs. Z leg, a CKM-ambiguous quark) is
-  rejected automatically. If no set passes, random subsets are tried.
-- **Difficulty** 1-7 maps to the weekday (Mon = 1 ... Sun = 7). Aim for: 1 = single tree diagram, 3 = a
-  weak/strong 2-to-2, 5 = a long fermion chain or contact vertex, 6-7 = loops, boxes, penguins.
-- Run `npm test`: it checks that your diagram is a valid, fully assigned Standard Model diagram, that the
-  layout is sane, that the explanation is 2-3 sentences, and that a fair hide set exists. The error
-  messages name the vertex and the law that is violated, so mistakes are easy to find.
+- **Coordinates:** `x` is time (left to right), `y` grows downward. Incoming legs go on the left edge, outgoing legs on the
+  right edge. A leg exactly above or below its vertex (same `x`) is fine.
+- **`legs`:** `[edgeId, "in"|"out", externalNode, vertex, particle]`. Write the **physical** particle (what you would
+  label the leg); the loader works out arrow direction and the stored particle, so you never handle backward arrows for
+  external legs.
+- **`edges`:** internal lines `[edgeId, from, to, particle, bend?]`. `particle` travels **along the arrow** from `from` to
+  `to`; fermion arrows follow the fermion-number flow, even backward in time. For bosons the direction is arbitrary but
+  the charge must be consistent (a W⁻ from v1 to v2 equals a W⁺ from v2 to v1). `bend` (layout units; negative = up for a
+  left-to-right edge) curves an edge, and parallel edges between two vertices fan out automatically.
+- **Particle ids:** `e- e+ mu- mu+ tau- tau+ nu_e anti_nu_e nu_mu anti_nu_mu nu_tau anti_nu_tau`; quarks `u d c s t b` and
+  `ubar dbar cbar sbar tbar bbar`; bosons `gamma Z g H W+ W-`.
+- **`hideSets`** (strongly recommended): lists of edge ids that make good puzzles. Hiding an external leg that could be
+  several particles (a photon vs. Z leg, a CKM-ambiguous quark) is rejected automatically; if no set passes, random
+  subsets are tried.
+- **Difficulty** 1-7 maps to the weekday. Aim for: 1 = a single tree diagram, 3 = a weak or strong 2-to-2, 5 = a long
+  fermion chain or contact vertex, 6-7 = loops, boxes and penguins.
+- Run `npm test`: it checks that your diagram is a valid, fully assigned Standard Model diagram, that the layout is sane,
+  that the explanation is 2-3 sentences, and that a fair hide set exists. Error messages name the vertex and the law that
+  is violated.
+- Preview your diagram at `#/library`, or load it in the editor.
 
 ## Puzzle editor and sharing (`#/editor`)
-1. Pick a tool: **Vertex** (tap to place), **Line** (drag from a vertex to another vertex, or into empty
-   space for an external leg), **Move** (drag points), **Delete**. Positions snap to a half-unit grid.
-   Or start from any library process with the dropdown and modify it.
-2. Select a line and choose the particle you would write on it (forward in time). Antiparticles get
-   backward arrows automatically, so you never draw arrows by hand. Vertices turn green when they are
-   valid Standard Model vertices and red otherwise; the status box explains every problem
-   ("Vertex 2: Electric charge is not conserved here (net -2 e)").
+1. Pick a tool: **Vertex** (tap to place), **Line** (drag from a vertex to another vertex, or into empty space for an
+   external leg), **Move** (drag points), **Delete**. Positions snap to a half-unit grid. Or start from any library
+   process with the dropdown and modify it.
+2. Select a line and choose the particle you would write on it (forward in time). Antiparticles get backward arrows
+   automatically. Vertices turn green when valid and red otherwise; the status box explains every problem.
 3. Switch on **Hidden from the player** for the lines to solve (amber in the editor).
-4. Sharing is blocked until the whole diagram is connected, fully assigned, valid at every vertex, has at
-   least one hidden line, and no hidden *external* leg could be several particles (that would change the
-   process). A very open puzzle (more than 60 valid answers) only gets a warning.
-5. **Test play** lets you solve your own puzzle; **Copy share link** gives
-   `https://<site>/#p=<compressed puzzle>`. Add an optional title and message; they are shown to the player.
+4. Sharing is blocked until the whole diagram is connected, fully assigned, valid at every vertex, has at least one hidden
+   line, and no hidden external leg could be several particles. A very open puzzle (more than 60 valid answers) only gets
+   a warning.
+5. **Test play** lets you solve your own puzzle; **Copy share link** gives `https://<site>/#p=<compressed puzzle>`. An
+   optional title and message are shown to the player.
 
-How links work: the puzzle is stored as compact JSON, compressed with lz-string and put in the URL hash,
-so there is no server. The JSON contains the creator's complete answer, which the app uses to check
-progress, so someone determined could decode a link and read it. Links are treated as untrusted input:
-size caps, schema checks, unknown particles, broken geometry and diagrams that violate a conservation law are
-all rejected with a friendly message, and text is always escaped before display. Progress on a shared puzzle
-is saved in localStorage per puzzle and never counts toward daily stats. Your in-progress editor draft is
-saved automatically in localStorage.
+How links work: the puzzle is stored as compact JSON, compressed with lz-string and placed in the URL hash, so there is no
+server. The JSON contains the creator's complete answer, which the app uses to check progress, so a determined person could
+decode a link and read it. Links are treated as untrusted input: size caps, schema checks, unknown particles, broken
+geometry and diagrams that violate a conservation law are rejected with a friendly message, and text is always escaped
+before display. Progress on a shared puzzle is saved per puzzle and never counts toward daily stats.
+
+## Project layout
+```
+src/engine/    particles, vertex rules, validator, solver, answer checking (no DOM)
+src/render/    diagram -> scene -> SVG (straight/wavy/curly/dashed lines)
+src/puzzle/    library JSON, loader, generator (daily + practice), seeded RNG
+src/game/      game state, stats/streaks, dates, share text
+src/editor/    editor model, checks, share codec
+src/ui/        game view, palette, practice, editor, dialogs, theme
+tests/         Vitest suites
+```
+
+## Not yet implemented
+- "Spot the forbidden vertex" puzzles (find the one wrong vertex). The puzzle data has a `kind` field ready for it.
+- Offline support (service worker). The app already ships a web manifest, so it can be added to a home screen.

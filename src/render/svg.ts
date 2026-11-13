@@ -76,7 +76,12 @@ export function sceneToSvg(scene: Scene, ariaLabel = 'Feynman diagram', layers: 
   // 5. tap targets on top
   parts.push('<g class="hits">');
   for (const e of scene.edges) {
-    parts.push(`<path class="hit" d="${e.hitD}" data-edge-hit="${escapeXml(e.id)}"/>`);
+    // lines that can be chosen (hidden / being edited) are keyboard-reachable
+    const interactive = e.state !== 'normal';
+    const a11y = interactive
+      ? ` tabindex="0" role="button" aria-label="${e.state === 'empty' ? 'Empty line, choose a particle' : 'Line, change particle'}"`
+      : '';
+    parts.push(`<path class="hit" d="${e.hitD}" data-edge-hit="${escapeXml(e.id)}"${a11y}/>`);
   }
   parts.push('</g>');
   if (layers.over) parts.push(layers.over);
@@ -96,14 +101,26 @@ export function renderDiagram(d: Diagram, o: RenderOptions = {}): string {
 }
 
 /**
- * Attach tap handling: calls `onEdge(edgeId)` when the user taps an edge's
- * hit area. Uses event delegation, so it survives re-rendering innerHTML.
+ * Attach tap/keyboard handling: calls `onEdge(edgeId, viaKeyboard)` when the user taps
+ * an edge's hit area or presses Enter/Space on a focused one. Uses event delegation,
+ * so it survives re-rendering innerHTML.
  */
-export function onEdgeTap(container: HTMLElement, onEdge: (edgeId: string) => void): () => void {
-  const handler = (ev: Event) => {
+export function onEdgeTap(container: HTMLElement, onEdge: (edgeId: string, viaKeyboard: boolean) => void): () => void {
+  const click = (ev: Event) => {
     const t = (ev.target as Element | null)?.closest?.('[data-edge-hit]');
-    if (t) onEdge(t.getAttribute('data-edge-hit')!);
+    if (t) onEdge(t.getAttribute('data-edge-hit')!, false);
   };
-  container.addEventListener('click', handler);
-  return () => container.removeEventListener('click', handler);
+  const key = (ev: KeyboardEvent) => {
+    if (ev.key !== 'Enter' && ev.key !== ' ') return;
+    const t = (ev.target as Element | null)?.closest?.('[data-edge-hit]');
+    if (!t) return;
+    ev.preventDefault();
+    onEdge(t.getAttribute('data-edge-hit')!, true);
+  };
+  container.addEventListener('click', click);
+  container.addEventListener('keydown', key);
+  return () => {
+    container.removeEventListener('click', click);
+    container.removeEventListener('keydown', key);
+  };
 }

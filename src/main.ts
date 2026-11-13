@@ -6,13 +6,16 @@ import { dailyPuzzle } from './puzzle/generator';
 import { loadDaily, loadShared, loadStats, saveDaily, saveShared, saveStats } from './storage';
 import { mountEditor } from './ui/editor';
 import { mountGame } from './ui/game';
+import { showHelp, showHelpOnFirstVisit } from './ui/help';
 import { mountPractice } from './ui/practice';
 import { showStatsDialog } from './ui/statsDialog';
+import { applyTheme, cycleTheme, getTheme, THEME_ICON, THEME_LABEL } from './ui/theme';
 import './style.css';
 
 const app = document.getElementById('app')!;
 app.innerHTML = '<nav class="nav" id="nav"></nav><div id="view"></div>';
 const nav = document.getElementById('nav')!;
+applyTheme(getTheme());
 const view = document.getElementById('view')!;
 let current: { destroy(): void } | null | undefined = null;
 
@@ -33,10 +36,36 @@ function renderNav(active: Route) {
     link('daily', '#/', 'Daily') +
     link('practice', '#/practice', 'Practice') +
     link('create', '#/editor', 'Create') +
-    link('library', '#/library', 'Library');
+    link('library', '#/library', 'Library') +
+    `<span class="nav-sp"></span>` +
+    `<button class="icon" data-theme-btn aria-label="${THEME_LABEL[getTheme()]} (tap to change)" title="${THEME_LABEL[getTheme()]}">${THEME_ICON[getTheme()]}</button>` +
+    `<button class="icon" data-help aria-label="How to play" title="How to play">?</button>`;
 }
 
+nav.addEventListener('click', (ev) => {
+  const t = ev.target as Element;
+  if (t.closest('[data-theme-btn]')) {
+    cycleTheme();
+    const btn = nav.querySelector<HTMLElement>('[data-theme-btn]')!;
+    btn.textContent = THEME_ICON[getTheme()];
+    btn.setAttribute('aria-label', `${THEME_LABEL[getTheme()]} (tap to change)`);
+    btn.title = THEME_LABEL[getTheme()];
+  } else if (t.closest('[data-help]')) {
+    showHelp();
+  }
+});
+
 function route() {
+  try {
+    renderRoute();
+  } catch (err) {
+    console.error(err);
+    current = null;
+    view.innerHTML = `<div class="card"><h2>Something went wrong</h2><p>Sorry, this page failed to load.</p><p><a href="#/">Back to today's puzzle</a> · <button onclick="location.reload()">Reload</button></p></div>`;
+  }
+}
+
+function renderRoute() {
   current?.destroy();
   current = null;
   view.innerHTML = '';
@@ -56,6 +85,7 @@ function route() {
   } else {
     renderNav('daily');
     current = startDaily();
+    showHelpOnFirstVisit();
   }
 }
 

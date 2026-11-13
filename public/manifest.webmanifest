@@ -1,0 +1,11 @@
+{
+  "name": "Daily Feynman Puzzle",
+  "short_name": "Feynman",
+  "description": "A daily Feynman diagram puzzle: fill in the missing particles using conservation laws.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#14131a",
+  "theme_color": "#14131a",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

@@ -164,4 +164,14 @@ describe('scene and SVG', () => {
     expect(svg).not.toContain('ν̄');
     expect(svg).not.toContain('k-photon'); // line style hidden unless revealKinds
   });
+
+  it('only hidden (interactive) lines are keyboard focusable', () => {
+    const d = betaDecay();
+    const svg = renderDiagram(d, { hidden: ['W'] });
+    const hit = (id: string) => svg.match(new RegExp(`<path class="hit"[^>]*data-edge-hit="${id}"[^>]*/>`))![0];
+    expect(hit('W')).toContain('tabindex="0"');
+    expect(hit('W')).toContain('role="button"');
+    expect(hit('W')).toContain('aria-label=');
+    expect(hit('d')).not.toContain('tabindex');
+  });
 });
