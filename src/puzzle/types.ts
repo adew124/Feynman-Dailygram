@@ -1,6 +1,6 @@
 import type { Diagram } from '../engine/types';
 
-/** fill = hide edge labels; external = hide external legs only; forbidden = find the bad vertex (later phase). */
+/** fill = hide edge labels; external = hide external legs only; forbidden = find the one illegal vertex. */
 export type PuzzleKind = 'fill' | 'external' | 'forbidden';
 
 /** A process in the curated library. */
@@ -34,4 +34,15 @@ export interface Puzzle {
   /** Optional message from a puzzle creator (shared puzzles). */
   title?: string;
   message?: string;
+  /** Only for kind 'forbidden': `diagram` is fully labelled but one external leg was swapped. */
+  forbidden?: ForbiddenInfo;
+}
+
+export interface ForbiddenInfo {
+  /** The one vertex that breaks the rules. */
+  vertexId: string;
+  /** The external edge whose label was swapped. */
+  edgeId: string;
+  /** The edge's correct (stored, along-the-arrow) particle. */
+  original: string;
 }

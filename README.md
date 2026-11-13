@@ -7,7 +7,8 @@ baryon number and each lepton family number. A static site (Vite + TypeScript, n
 **Features**
 - **Daily puzzle**: the same puzzle for everyone each local day, easy on Monday up to hard on Sunday. 3 attempts,
   per-vertex hints, spoiler-free emoji share card, streaks and stats.
-- **Practice**: unlimited random puzzles, filterable by difficulty (1-7).
+- **Practice**: unlimited random puzzles, filterable by difficulty (1-7) and by type: fill in the particles, or
+  **spot the forbidden vertex** (a fully labelled diagram where one leg was swapped; tap the one vertex that breaks a rule).
 - **Create**: a puzzle editor (drag vertices, draw lines, pick particles, hide lines) that shares a puzzle as a link.
 - **Library**: 51 real processes, from beta decay and e+e- -> mu+mu- to penguins, meson-mixing boxes and Higgs loops.
 - Any valid assignment is accepted, not just a stored answer key.
@@ -142,6 +143,11 @@ src/ui/        game view, palette, practice, editor, dialogs, theme
 tests/         Vitest suites
 ```
 
+## Spot the forbidden vertex
+`src/puzzle/forbidden.ts` takes a library diagram and swaps the label of one *external* leg (preferring the same line
+style so the shape gives nothing away), keeping only swaps that leave exactly one invalid vertex. The player taps that
+vertex (3 attempts; a wrong tap turns that vertex green, and a coarse hint appears after two misses). It is available in
+Practice only; the daily puzzle is unchanged.
+
 ## Not yet implemented
-- "Spot the forbidden vertex" puzzles (find the one wrong vertex). The puzzle data has a `kind` field ready for it.
 - Offline support (service worker). The app already ships a web manifest, so it can be added to a home screen.
