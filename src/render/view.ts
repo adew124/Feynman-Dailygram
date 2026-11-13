@@ -1,3 +1,4 @@
+import { hiddenGroupLegs } from '../engine/decays';
 import { getHadron } from '../engine/hadrons';
 import { physicalParticle } from '../engine/orientation';
 import { getParticle, type ParticleId } from '../engine/particles';
@@ -81,11 +82,14 @@ export function buildEdgeViews(d: Diagram, o: ViewOptions = {}): Record<string, 
   const out: Record<string, EdgeView> = {};
   const groupViews = buildGroupViews(d, o);
   // quark legs of hidden hadron groups: unknown line, "?" label, the group's state
+  // (a spectator line shared with a visible hadron stays visible)
   const legState = new Map<string, EdgeState>();
   for (const g of d.hadrons ?? []) {
     if (!groupViews[g.id].hidden) continue;
-    for (const nid of g.nodes) {
-      for (const e of d.edges) if (e.from === nid || e.to === nid) legState.set(e.id, groupViews[g.id].state);
+    for (const id of hiddenGroupLegs(d, (d.hadrons ?? []).filter((x) => groupViews[x.id].hidden).map((x) => x.id))) {
+      const e = d.edges.find((x) => x.id === id)!;
+      const owner = (d.hadrons ?? []).find((x) => groupViews[x.id].hidden && x.nodes.some((n) => n === e.from || n === e.to));
+      if (owner) legState.set(id, groupViews[owner.id].state);
     }
   }
   for (const e of d.edges) {

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { solve } from '../src/engine/solver';
 import { structuralErrors, validateDiagram } from '../src/engine/validator';
 import { addDays, weekday } from '../src/game/dates';
-import { evaluate, solutionOf } from '../src/game/state';
+import { evaluate, solutionGroups, solutionOf } from '../src/game/state';
 import { acceptableHideSet, dailyPuzzle, makePuzzle } from '../src/puzzle/generator';
 import { LIBRARY } from '../src/puzzle/library';
 import { parseProcess, type RawProcess } from '../src/puzzle/loader';
@@ -65,7 +65,7 @@ describe('library data', () => {
           const p = makePuzzle(e, `s${i}`);
           const sols = solve(p.diagram, p.hidden, 100);
           expect(sols.length).toBeGreaterThan(0);
-          expect(evaluate(p, solutionOf(p)).correct).toBe(true);
+          expect(evaluate(p, solutionOf(p), solutionGroups(p)).correct).toBe(true);
         }
       });
     });

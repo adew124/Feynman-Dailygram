@@ -196,3 +196,24 @@ export function validateFull(d: Diagram, opts: { kinematics?: boolean } = {}): F
     kinematics === null;
   return { vertices, hadrons, kinematics, valid };
 }
+
+/** Edge ids of the quark lines the player must fill in when hiding hadron groups `groupIds`. */
+export function hiddenGroupLegs(d: Diagram, groupIds: readonly string[]): string[] {
+  const hidden = new Set(groupIds);
+  const groupOfNode = new Map<string, HadronGroup>();
+  for (const g of d.hadrons ?? []) for (const n of g.nodes) groupOfNode.set(n, g);
+  const out = new Set<string>();
+  for (const g of d.hadrons ?? []) {
+    if (!hidden.has(g.id)) continue;
+    for (const nid of g.nodes) {
+      const e = legEdge(d, nid);
+      if (!e) continue;
+      const other = e.from === nid ? e.to : e.from;
+      const og = groupOfNode.get(other);
+      // a spectator line is shared with the group at its other end: it stays visible unless that group is hidden too
+      if (og && !hidden.has(og.id)) continue;
+      out.add(e.id);
+    }
+  }
+  return [...out];
+}

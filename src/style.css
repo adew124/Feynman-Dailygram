@@ -310,3 +310,14 @@ svg.feynman .hlabel.s-partial, svg.feynman .qlabel.s-partial { fill: var(--warn)
 svg.feynman .hlabel.s-wrong, svg.feynman .qlabel.s-wrong { fill: var(--bad); }
 svg.feynman .ghit { fill: transparent; stroke: none; cursor: pointer; }
 svg.feynman .ghit:focus-visible { outline: none; stroke: var(--accent); stroke-opacity: 0.5; stroke-width: 3; }
+
+.phead { margin: 10px 0 4px; font-weight: 600; }
+.tabs .phead { margin: 0; align-self: center; flex: 1; }
+
+/* ---------- allowed-or-suppressed puzzle ---------- */
+.reasons { display: grid; gap: 8px; margin: 8px 0; }
+.reason { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; cursor: pointer; }
+.reason input { margin-top: 4px; width: 18px; height: 18px; flex: 0 0 auto; }
+.compare { display: grid; gap: 12px; grid-template-columns: 1fr; }
+@media (min-width: 640px) { .compare { grid-template-columns: 1fr 1fr; } }
+.cmp h3 { margin: 6px 0; font-size: 0.95rem; }

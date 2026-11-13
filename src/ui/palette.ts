@@ -1,3 +1,4 @@
+import { ALL_HADRON_IDS, getHadron } from '../engine/hadrons';
 import { antiparticle, getParticle, type ParticleId } from '../engine/particles';
 import { escapeXml } from '../render/svg';
 
@@ -56,5 +57,33 @@ export function renderPalette(tab: PaletteTab, anti: boolean, current: ParticleI
       </div>
       <div class="pgrid">${cells}</div>
       <button class="clear" data-clear ${enabled && current ? '' : 'disabled'}>Clear this edge</button>
+    </div>`;
+}
+
+/** Hadrons offered when a hidden hadron is selected: mesons then baryons (antiparticles when `anti`). */
+export function hadronPaletteIds(anti: boolean): { mesons: string[]; baryons: string[] } {
+  const base = ALL_HADRON_IDS.filter((id) => !getHadron(id).isAnti);
+  const pick = (kind: 'meson' | 'baryon') =>
+    base.filter((id) => getHadron(id).kind === kind).map((id) => (anti ? getHadron(id).antiId : id));
+  return { mesons: pick('meson'), baryons: pick('baryon') };
+}
+
+export function renderHadronPalette(anti: boolean, current: string | null, enabled: boolean): string {
+  const { mesons, baryons } = hadronPaletteIds(anti);
+  const cell = (id: string) => {
+    const h = getHadron(id);
+    const sel = current === id ? ' chosen' : '';
+    return `<button class="pbtn${sel}" data-hadron="${id}" aria-label="${escapeXml(h.name)}" title="${escapeXml(h.name)}" ${enabled ? '' : 'disabled'}>${symbolToHtml(h.symbol)}</button>`;
+  };
+  return `
+    <div class="palette">
+      <div class="tabs"><span class="sub phead">Hadrons</span>
+        <button class="anti${anti ? ' on' : ''}" data-anti aria-pressed="${anti}">anti</button>
+      </div>
+      <div class="sub phead">Mesons</div>
+      <div class="pgrid">${mesons.map(cell).join('')}</div>
+      <div class="sub phead">Baryons</div>
+      <div class="pgrid">${baryons.map(cell).join('')}</div>
+      <button class="clear" data-clear ${enabled && current ? '' : 'disabled'}>Clear this hadron</button>
     </div>`;
 }

@@ -60,6 +60,8 @@ export interface SceneOptions {
   maxHeight?: number;
   minHeight?: number;
   padding?: number;
+  /** Horizontal padding only (overrides `padding` left and right). */
+  padX?: number;
   vertexStates?: Record<string, 'ok' | 'error'>;
   vertexLabels?: Record<string, string>;
   /** Fixed layout bounds (editor): keeps the scale constant while nodes move. */
@@ -68,6 +70,8 @@ export interface SceneOptions {
   arrowOnUnknown?: boolean;
   /** Per-group display info (see buildGroupViews). Required to draw hadron outlines. */
   groupViews?: Record<string, GroupView>;
+  /** Fallback label for a hadron's quark point that has no line yet (editor). */
+  nodeLabels?: Record<string, string>;
 }
 
 /**
@@ -105,7 +109,7 @@ export function buildScene(d: Diagram, views: Record<string, EdgeView>, o: Scene
   const W = o.width ?? 520;
   const pad = o.padding ?? 56;
   // hadron outlines and their labels need extra room left and right
-  const padX = o.padding ?? (d.hadrons?.length ? 82 : 56);
+  const padX = o.padX ?? o.padding ?? (d.hadrons?.length ? 82 : 56);
   const maxH = o.maxHeight ?? 420;
   const minH = o.minHeight ?? 220;
 
@@ -221,7 +225,7 @@ export function buildScene(d: Diagram, views: Record<string, EdgeView>, o: Scene
       label: { text: view.label, x: cx + dir * (HALF + 5 + 18), y: (top + bottom) / 2, anchor },
       quarks: pts.map((p) => {
         const e = legEdge(d, p.nid);
-        return { text: (e && views[e.id]?.label) || '', x: cx + dir * (HALF + 5), y: p.y, anchor };
+        return { text: (e && views[e.id]?.label) || o.nodeLabels?.[p.nid] || '', x: cx + dir * (HALF + 5), y: p.y, anchor };
       }),
     });
   }

@@ -1,8 +1,10 @@
+import { validateFull } from '../engine/decays';
+import { getHadron } from '../engine/hadrons';
 import type { Diagram } from '../engine/types';
 import { structuralErrors, validateDiagram, type ValidationResult } from '../engine/validator';
 import { vertexNumbers } from '../game/state';
 import { analyzeHideSet, isExternalEdge } from '../puzzle/generator';
-import { hiddenIds, LIMITS, toDiagram, type EditorModel } from './model';
+import { hiddenGroupIds, hiddenIds, LIMITS, toDiagram, type EditorModel } from './model';
 
 export interface EditorReport {
   /** Problems that block sharing. */
@@ -23,6 +25,13 @@ function connected(d: Diagram): boolean {
   for (const e of d.edges) {
     adj.get(e.from)?.push(e.to);
     adj.get(e.to)?.push(e.from);
+  }
+  // the quark points of one hadron belong together (a spectator quark line joins two hadrons)
+  for (const g of d.hadrons ?? []) {
+    for (let i = 1; i < g.nodes.length; i++) {
+      adj.get(g.nodes[i - 1])?.push(g.nodes[i]);
+      adj.get(g.nodes[i])?.push(g.nodes[i - 1]);
+    }
   }
   const seen = new Set<string>([d.nodes[0].id]);
   const stack = [d.nodes[0].id];
@@ -53,7 +62,19 @@ export function checkModel(m: EditorModel): EditorReport {
   } else {
     if (externals.length === 0) errors.push('Add at least one external leg: drag a line from a vertex into empty space.');
     if (!connected(diagram)) errors.push('Everything must be connected into one diagram.');
-    for (const msg of structuralErrors(diagram)) errors.push(msg);
+    // quark points of a hadron that have no line yet get a friendlier message than "external point x3 ..."
+    const groupNodeIds = new Set(m.groups.flatMap((g) => g.nodes));
+    for (const g of m.groups) {
+      const free = g.nodes.filter((nid) => !m.edges.some((e) => e.a === nid || e.b === nid)).length;
+      if (free) {
+        errors.push(
+          `The ${getHadron(g.hadron).symbol} has ${free} quark line${free > 1 ? 's' : ''} not connected yet: draw a line from a vertex (or from the hadron on the other side) to each one.`,
+        );
+      }
+    }
+    for (const msg of structuralErrors(diagram)) {
+      if (![...groupNodeIds].some((id) => msg.includes(`point ${id} `))) errors.push(msg);
+    }
 
     const unassigned = m.edges.filter((e) => e.p === null).length;
     if (unassigned) errors.push(`${unassigned} line${unassigned > 1 ? 's' : ''} still need${unassigned > 1 ? '' : 's'} a particle.`);
@@ -61,14 +82,19 @@ export function checkModel(m: EditorModel): EditorReport {
     for (const i of validation.issues) {
       errors.push(`Vertex ${nums[i.vertexId] ?? '?'}: ${i.message}`);
     }
+    if (m.groups.length && unassigned === 0) {
+      const full = validateFull(diagram);
+      for (const i of full.hadrons.issues) errors.push(i.message);
+      if (full.kinematics) errors.push(full.kinematics.message);
+    }
   }
 
-  const hidden = hiddenIds(m);
+  const hidden = [...hiddenIds(m), ...hiddenGroupIds(m)];
   if (errors.length === 0) {
     if (hidden.length === 0) {
-      errors.push('Hide at least one line: select it and switch on "Hidden from the player".');
+      errors.push('Hide at least one line or hadron: select it and switch on "Hidden from the player".');
     } else if (hidden.length > LIMITS.hidden) {
-      errors.push(`Hide at most ${LIMITS.hidden} lines.`);
+      errors.push(`Hide at most ${LIMITS.hidden} lines or hadrons.`);
     } else {
       const r = analyzeHideSet(diagram, hidden);
       solutions = r.solutions;
@@ -77,6 +103,12 @@ export function checkModel(m: EditorModel): EditorReport {
         const label = isExternalEdge(diagram, id) ? 'An external leg' : 'A line';
         errors.push(
           `${label} you hid could be more than one particle, which would change the process. Reveal it, or hide the inner lines instead.`,
+        );
+      }
+      for (const g of r.ambiguousGroups) {
+        const sym = getHadron(m.groups.find((q) => q.id === g)!.hadron).symbol;
+        errors.push(
+          `The hadron you hid (${sym}) could be more than one particle, even after the energy check, which would change the process. Reveal it, or hide something else.`,
         );
       }
       if (r.tooOpen) warnings.push(`Very open puzzle: more than ${r.solutions - 1} valid answers.`);

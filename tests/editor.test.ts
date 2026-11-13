@@ -8,6 +8,7 @@ import {
   deleteEdge,
   deleteNode,
   emptyModel,
+  hiddenGroupIds,
   hiddenIds,
   LIMITS,
   modelFromDiagram,
@@ -187,8 +188,7 @@ describe('physical labels vs arrows (toDiagram)', () => {
 });
 
 describe('library round trip through the editor model', () => {
-  // decays with hadron groups need the editor's hadron support (see the hadron editor tests)
-  for (const entry of LIBRARY.filter((e) => !e.diagram.hadrons?.length)) {
+  for (const entry of LIBRARY) {
     it(entry.id, () => {
       const hidden = entry.hideSets?.[0] ?? [];
       const m = modelFromDiagram(entry.diagram, hidden);
@@ -201,7 +201,7 @@ describe('library round trip through the editor model', () => {
         const de = d.edges.find((q) => q.id === m.edges[i].id)!;
         expect(physicalParticle(d, de)).toBe(m.edges[i].p);
       });
-      expect(hiddenIds(m)).toHaveLength(hidden.length);
+      expect(hiddenIds(m).length + hiddenGroupIds(m).length).toBe(hidden.length);
       // layout fits the canvas
       for (const n of m.nodes) {
         expect(n.x).toBeGreaterThanOrEqual(0);

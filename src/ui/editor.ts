@@ -2,42 +2,50 @@ import { checkModel } from '../editor/checks';
 import {
   addEdge,
   addExternalLeg,
+  addGroup,
   addVertex,
   BOUNDS,
   deleteEdge,
   deleteNode,
   emptyModel,
+  groupOfNode,
+  hiddenGroupIds,
   hiddenIds,
+  isHadronLeg,
   LIMITS,
   modelFromDiagram,
   moveNode,
   sanitizeModel,
+  setGroupComponent,
   setParticle,
   setText,
   toDiagram,
+  toggleGroupHidden,
   toggleHidden,
   type EditorModel,
   type Result,
 } from '../editor/model';
 import { puzzleFromShared, shareUrl, type SharedData } from '../editor/share';
+import { ALL_HADRON_IDS, describeContent, getHadron } from '../engine/hadrons';
 import { getParticle, type ParticleId } from '../engine/particles';
 import { validateDiagram } from '../engine/validator';
 import { vertexNumbers } from '../game/state';
 import { LIBRARY } from '../puzzle/library';
 import { buildScene, type Scene } from '../render/scene';
 import { escapeXml, sceneToSvg } from '../render/svg';
-import { lineKindForParticle, type EdgeView } from '../render/view';
+import { lineKindForParticle, type EdgeView, type GroupView } from '../render/view';
 import { loadDraftRaw, saveDraftRaw } from '../storage';
 import { mountGame } from './game';
-import { renderPalette, type PaletteTab } from './palette';
+import { renderPalette, symbolToHtml, type PaletteTab } from './palette';
 
-type Tool = 'move' | 'vertex' | 'line' | 'delete';
+type Tool = 'move' | 'vertex' | 'line' | 'hadron' | 'delete';
 type Selection = { kind: 'node' | 'edge'; id: string } | null;
 
 const TOOLS: { id: Tool; label: string; hint: string }[] = [
   { id: 'move', label: 'Move', hint: 'Drag points to move them. Tap a line to choose its particle.' },
   { id: 'vertex', label: 'Vertex', hint: 'Tap empty space to add a vertex (a point where 3 or 4 lines meet).' },
-  { id: 'line', label: 'Line', hint: 'Drag from a vertex to another vertex, or into empty space to make an external leg.' },
+  { id: 'line', label: 'Line', hint: 'Drag from a vertex to another vertex, or into empty space to make an external leg. Drag from a vertex onto a hadron\'s quark point to attach it.' },
+  { id: 'hadron', label: 'Hadron', hint: 'Pick a hadron below, then tap empty space to place it. Its quark points are external legs: draw lines from vertices to them, or from an incoming hadron to an outgoing one for a spectator quark.' },
   { id: 'delete', label: 'Delete', hint: 'Tap a point or a line to remove it.' },
 ];
 
@@ -53,6 +61,8 @@ export function mountEditor(root: HTMLElement): { destroy(): void } {
   let scene: Scene | null = null;
   let drag: { id: string; startModel: EditorModel; moved: boolean } | null = null;
   let drawing: { from: string; x: number; y: number } | null = null;
+  let pickHadron = 'pi+';
+  let pickComp = 0;
   let testGame: { destroy(): void } | null = null;
 
   root.innerHTML = `
@@ -63,6 +73,7 @@ export function mountEditor(root: HTMLElement): { destroy(): void } {
         <select id="ed-template" aria-label="Start from a library process"></select>
       </div>
       <div class="tools" id="ed-tools"></div>
+      <div class="toolbar" id="ed-hadron-pick" hidden></div>
       <p class="sub tool-hint" id="ed-hint"></p>
       <div class="card diagram"><div id="ed-canvas" class="canvas"></div></div>
       <div class="card" id="ed-inspector"></div>
@@ -161,7 +172,26 @@ export function mountEditor(root: HTMLElement): { destroy(): void } {
       else if (r.status === 'invalid') vertexStates[id] = 'error';
     }
     const vertexLabels = Object.fromEntries(Object.entries(nums).map(([id, n]) => [id, String(n)]));
-    scene = buildScene(diagram, views, { bounds: BOUNDS, padding: 40, vertexStates, vertexLabels, arrowOnUnknown: false });
+    const groupViews: Record<string, GroupView> = {};
+    const nodeLabels: Record<string, string> = {};
+    for (const g of model.groups) {
+      const sel = selection?.kind === 'node' && g.nodes.includes(selection.id);
+      groupViews[g.id] = { label: getHadron(g.hadron).symbol, state: sel ? 'selected' : g.hidden ? 'partial' : 'normal', hidden: false };
+      const q = getHadron(g.hadron).components[g.comp].quarks;
+      g.nodes.forEach((nid, i) => {
+        nodeLabels[nid] = getParticle(q[i]).symbol;
+      });
+    }
+    scene = buildScene(diagram, views, {
+      bounds: BOUNDS,
+      padding: 40,
+      padX: model.groups.length ? 80 : 40,
+      vertexStates,
+      vertexLabels,
+      arrowOnUnknown: false,
+      groupViews,
+      nodeLabels,
+    });
     const t = scene.transform;
     const px = (x: number, y: number) => ({ x: t.offX + (x - t.minX) * t.scale, y: t.offY + (y - t.minY) * t.scale });
 
@@ -242,7 +272,7 @@ export function mountEditor(root: HTMLElement): { destroy(): void } {
     }
     if (nodeId) {
       const node = model.nodes.find((n) => n.id === nodeId)!;
-      if (tool === 'line' && node.kind === 'vertex') {
+      if (tool === 'line' && (node.kind === 'vertex' || groupOfNode(model, nodeId))) {
         selection = { kind: 'node', id: nodeId };
         drawing = { from: nodeId, ...pointerToSvg(ev) };
         capture(ev);
@@ -266,6 +296,14 @@ export function mountEditor(root: HTMLElement): { destroy(): void } {
       const id = tryApply(addVertex(model, pos.x, pos.y));
       if (id) {
         selection = { kind: 'node', id };
+        renderAll();
+      }
+      return;
+    }
+    if (tool === 'hadron') {
+      const gid = tryApply(addGroup(model, pickHadron, pickComp, pos.x, pos.y));
+      if (gid) {
+        selection = { kind: 'node', id: model.groups.find((g) => g.id === gid)!.nodes[0] };
         renderAll();
       }
       return;
@@ -306,15 +344,11 @@ export function mountEditor(root: HTMLElement): { destroy(): void } {
       const pos = svgToLayout(pointerToSvg(ev));
       const target = nearestNode(pos.x, pos.y, 0.6, from);
       if (target) {
-        if (target.kind === 'vertex') {
-          const id = tryApply(addEdge(model, from, target.id));
-          if (id) selection = { kind: 'edge', id };
-        } else {
-          flash('That point already has a line.');
-        }
+        const id = tryApply(addEdge(model, from, target.id));
+        if (id) selection = { kind: 'edge', id };
       } else {
         const fromNode = model.nodes.find((n) => n.id === from)!;
-        if (Math.hypot(pos.x - fromNode.x, pos.y - fromNode.y) >= 0.5) {
+        if (fromNode.kind === 'vertex' && Math.hypot(pos.x - fromNode.x, pos.y - fromNode.y) >= 0.5) {
           const id = tryApply(addExternalLeg(model, from, pos.x, pos.y));
           if (id) selection = { kind: 'edge', id };
         }
@@ -336,6 +370,28 @@ export function mountEditor(root: HTMLElement): { destroy(): void } {
       ).join('') +
       `<button data-undo ${undo.length ? '' : 'disabled'}>Undo</button><button class="ghost" data-clearall ${model.nodes.length ? '' : 'disabled'}>Clear</button>`;
     $('ed-hint').textContent = TOOLS.find((t) => t.id === tool)!.hint;
+    renderHadronPicker();
+  }
+
+  function renderHadronPicker() {
+    const box = $('ed-hadron-pick');
+    box.hidden = tool !== 'hadron';
+    if (tool !== 'hadron') return;
+    const option = (id: string) => {
+      const h = getHadron(id);
+      return `<option value="${id}"${id === pickHadron ? ' selected' : ''}>${escapeXml(h.symbol.replace(/_/g, ''))} · ${escapeXml(h.name)}</option>`;
+    };
+    const ids = ALL_HADRON_IDS.slice();
+    const mesons = ids.filter((id) => getHadron(id).kind === 'meson');
+    const baryons = ids.filter((id) => getHadron(id).kind === 'baryon');
+    const comps = getHadron(pickHadron).components;
+    box.innerHTML = `<select id="ed-hadron" aria-label="Hadron to place"><optgroup label="Mesons">${mesons.map(option).join('')}</optgroup><optgroup label="Baryons">${baryons.map(option).join('')}</optgroup></select>${
+      comps.length > 1
+        ? `<select id="ed-comp" aria-label="Quark content">${comps
+            .map((c, i) => `<option value="${i}"${i === pickComp ? ' selected' : ''}>${escapeXml(describeContent(c.quarks))}</option>`)
+            .join('')}</select>`
+        : ''
+    }`;
   }
 
   function describeEnd(id: string, nums: Record<string, number>): string {
@@ -352,6 +408,25 @@ export function mountEditor(root: HTMLElement): { destroy(): void } {
       }</p>`;
       return;
     }
+    if (selection.kind === 'node' && groupOfNode(model, selection.id)) {
+      const g = groupOfNode(model, selection.id)!;
+      const h = getHadron(g.hadron);
+      const used = g.nodes.filter((nid) => model.edges.some((e) => e.a === nid || e.b === nid)).length;
+      box.innerHTML = `<h3>${symbolToHtml(h.symbol)} · ${escapeXml(h.name)}</h3>
+        <p class="sub">${used} of ${g.nodes.length} quark lines connected. Quark content: <b>${escapeXml(describeContent(h.components[g.comp].quarks))}</b>.</p>
+        ${
+          h.components.length > 1
+            ? `<label class="field">Quark content to draw <select data-comp-select>${h.components
+                .map((c, i) => `<option value="${i}"${i === g.comp ? ' selected' : ''}>${escapeXml(describeContent(c.quarks))}</option>`)
+                .join('')}</select></label>`
+            : ''
+        }
+        <div class="row">
+          <button class="toggle${g.hidden ? ' on' : ''}" data-hide-group aria-pressed="${g.hidden}">${g.hidden ? '✓ ' : ''}Hidden from the player</button>
+          <button class="ghost" data-del-node>Delete hadron</button>
+        </div>`;
+      return;
+    }
     if (selection.kind === 'node') {
       const n = model.nodes.find((q) => q.id === selection!.id)!;
       const deg = model.edges.filter((e) => e.a === n.id || e.b === n.id).length;
@@ -366,7 +441,11 @@ export function mountEditor(root: HTMLElement): { destroy(): void } {
       <p class="sub">Choose the particle you would write on this line, travelling forward in time (left to right).</p>
       ${renderPalette(tab, anti, e.p, true)}
       <div class="row">
-        <button class="toggle${e.hidden ? ' on' : ''}" data-hide aria-pressed="${e.hidden}">${e.hidden ? '✓ ' : ''}Hidden from the player</button>
+        ${
+          isHadronLeg(model, e.id)
+            ? '<span class="sub">This is a quark line of a hadron: hide the whole hadron instead.</span>'
+            : `<button class="toggle${e.hidden ? ' on' : ''}" data-hide aria-pressed="${e.hidden}">${e.hidden ? '✓ ' : ''}Hidden from the player</button>`
+        }
         <button class="ghost" data-del-edge>Delete line</button>
       </div>`;
   }
@@ -374,7 +453,7 @@ export function mountEditor(root: HTMLElement): { destroy(): void } {
   function renderStatus() {
     const r = checkModel(model);
     const box = $('ed-status');
-    const counts = `${model.nodes.filter((n) => n.kind === 'vertex').length} vertices · ${model.edges.length} lines · ${hiddenIds(model).length} hidden`;
+    const counts = `${model.nodes.filter((n) => n.kind === 'vertex').length} vertices · ${model.edges.length} lines${model.groups.length ? ` · ${model.groups.length} hadrons` : ''} · ${hiddenIds(model).length + hiddenGroupIds(model).length} hidden`;
     if (r.ok) {
       box.innerHTML = `<p class="ok-line">✓ Ready to share <span class="sub">(${counts}; ${r.solutions === null ? '' : `${r.solutions} valid answer${r.solutions === 1 ? '' : 's'}`})</span></p>
         ${r.warnings.map((w) => `<p class="warn-line">⚠ ${escapeXml(w)}</p>`).join('')}`;
@@ -401,7 +480,7 @@ export function mountEditor(root: HTMLElement): { destroy(): void } {
   function currentData(): SharedData | null {
     const r = checkModel(model);
     if (!r.ok) return null;
-    return { title: model.title.trim(), message: model.message.trim(), diagram: r.diagram, hidden: hiddenIds(model) };
+    return { title: model.title.trim(), message: model.message.trim(), diagram: r.diagram, hidden: hiddenIds(model), hiddenGroups: hiddenGroupIds(model) };
   }
 
   async function doShare() {
@@ -487,6 +566,11 @@ export function mountEditor(root: HTMLElement): { destroy(): void } {
       commit(toggleHidden(model, selection.id));
       return;
     }
+    if (t.closest('[data-hide-group]') && selection?.kind === 'node') {
+      const g = groupOfNode(model, selection.id);
+      if (g) commit(toggleGroupHidden(model, g.id));
+      return;
+    }
     const tabBtn = t.closest<HTMLElement>('[data-tab]');
     if (tabBtn) {
       tab = tabBtn.dataset.tab as PaletteTab;
@@ -512,6 +596,20 @@ export function mountEditor(root: HTMLElement): { destroy(): void } {
     else if (t.closest('[data-back]')) stopTest();
   };
   root.addEventListener('click', onClick);
+
+  root.addEventListener('change', (ev) => {
+    const t = ev.target as HTMLElement;
+    if (t.id === 'ed-hadron') {
+      pickHadron = (t as HTMLSelectElement).value;
+      pickComp = 0;
+      renderHadronPicker();
+    } else if (t.id === 'ed-comp') {
+      pickComp = Number((t as HTMLSelectElement).value);
+    } else if (t.hasAttribute('data-comp-select') && selection?.kind === 'node') {
+      const g = groupOfNode(model, selection.id);
+      if (g) commit(setGroupComponent(model, g.id, Number((t as HTMLSelectElement).value)));
+    }
+  });
 
   titleInput.addEventListener('input', () => {
     model = setText(model, titleInput.value, model.message);

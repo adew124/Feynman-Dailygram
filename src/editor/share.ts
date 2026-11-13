@@ -1,6 +1,8 @@
 import LZString from 'lz-string';
+import { validateFull } from '../engine/decays';
+import { isHadronId } from '../engine/hadrons';
 import { isParticleId } from '../engine/particles';
-import type { Diagram, DiagramEdge, DiagramNode } from '../engine/types';
+import type { Diagram, DiagramEdge, DiagramNode, HadronGroup } from '../engine/types';
 import { structuralErrors, validateDiagram } from '../engine/validator';
 import { hashString } from '../puzzle/rng';
 import { isExternalEdge } from '../puzzle/generator';
@@ -21,6 +23,8 @@ export interface SharedData {
   message: string;
   diagram: Diagram;
   hidden: string[];
+  /** Hidden hadron groups (decays drawn with quark lines). */
+  hiddenGroups?: string[];
 }
 
 export const HASH_PREFIX = '#p=';
@@ -28,19 +32,23 @@ const MAX_COMPRESSED = 12_000;
 const MAX_JSON = 30_000;
 
 type Compact = {
-  v: 1;
+  v: 1 | 2;
   t?: string;
   m?: string;
   h: string[];
   n: [string, 'v' | 'x', number, number][];
   e: ([string, string, string, string] | [string, string, string, string, number])[];
+  /** v2 only: hadron groups [id, hadron, 'i' | 'o', [external node ids]] and the ids of the hidden ones. */
+  g?: [string, string, 'i' | 'o', string[]][];
+  hg?: string[];
 };
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
 export function encodeShared(data: SharedData): string {
+  const groups = data.diagram.hadrons ?? [];
   const c: Compact = {
-    v: 1,
+    v: groups.length ? 2 : 1,
     h: data.hidden,
     n: data.diagram.nodes.map((n) => [n.id, n.kind === 'vertex' ? 'v' : 'x', r2(n.x), r2(n.y)]),
     e: data.diagram.edges.map((e) =>
@@ -49,6 +57,10 @@ export function encodeShared(data: SharedData): string {
         : [e.id, e.from, e.to, e.particle as string, r2(e.bend)],
     ),
   };
+  if (groups.length) {
+    c.g = groups.map((g) => [g.id, g.hadron as string, g.side === 'in' ? 'i' : 'o', g.nodes]);
+    c.hg = data.hiddenGroups ?? [];
+  }
   if (data.title) c.t = data.title;
   if (data.message) c.m = data.message;
   return LZString.compressToEncodedURIComponent(JSON.stringify(c));
@@ -71,8 +83,9 @@ export function decodeShared(compressed: string): DecodeResult {
     const json = LZString.decompressFromEncodedURIComponent(compressed);
     if (!json || json.length > MAX_JSON) return fail('This link is damaged.');
     const raw = JSON.parse(json) as Partial<Compact> | null;
-    if (!raw || typeof raw !== 'object' || raw.v !== 1) return fail('This link was made by an unknown version.');
+    if (!raw || typeof raw !== 'object' || (raw.v !== 1 && raw.v !== 2)) return fail('This link was made by an unknown version.');
     if (!Array.isArray(raw.n) || !Array.isArray(raw.e) || !Array.isArray(raw.h)) return fail('This link is damaged.');
+    if (raw.v === 2 && (!Array.isArray(raw.g) || !Array.isArray(raw.hg))) return fail('This link is damaged.');
     if (raw.n.length > LIMITS.vertices + LIMITS.externals || raw.e.length > LIMITS.edges) return fail('This puzzle is too large.');
 
     const nodes: DiagramNode[] = [];
@@ -104,11 +117,38 @@ export function decodeShared(compressed: string): DecodeResult {
       if (typeof h !== 'string' || !edgeIds.has(h) || hidden.includes(h)) return fail('This link is damaged.');
       hidden.push(h);
     }
-    if (hidden.length < 1 || hidden.length > LIMITS.hidden) return fail('This puzzle has no hidden lines to solve.');
 
-    const diagram: Diagram = { nodes, edges };
+    const hadrons: HadronGroup[] = [];
+    const hiddenGroups: string[] = [];
+    if (raw.v === 2) {
+      if (raw.g!.length > LIMITS.groups) return fail('This puzzle is too large.');
+      const grouped = new Set<string>();
+      for (const g of raw.g!) {
+        if (!Array.isArray(g) || !isStr(g[0], 12) || !isStr(g[1], 20) || (g[2] !== 'i' && g[2] !== 'o') || !Array.isArray(g[3])) {
+          return fail('This link is damaged.');
+        }
+        if (hadrons.some((q) => q.id === g[0]) || !isHadronId(g[1])) return fail('This link contains an unknown hadron.');
+        if (g[3].length < 2 || g[3].length > 3) return fail('This link is damaged.');
+        for (const nid of g[3]) {
+          if (typeof nid !== 'string' || !nodeIds.has(nid) || grouped.has(nid)) return fail('This link is damaged.');
+          grouped.add(nid);
+        }
+        hadrons.push({ id: g[0], hadron: g[1], side: g[2] === 'i' ? 'in' : 'out', nodes: [...g[3]] });
+      }
+      for (const h of raw.hg!) {
+        if (typeof h !== 'string' || !hadrons.some((q) => q.id === h) || hiddenGroups.includes(h)) return fail('This link is damaged.');
+        hiddenGroups.push(h);
+      }
+    }
+    if (hidden.length + hiddenGroups.length < 1 || hidden.length + hiddenGroups.length > LIMITS.hidden) {
+      return fail('This puzzle has no hidden lines to solve.');
+    }
+
+    const diagram: Diagram = hadrons.length ? { nodes, edges, hadrons } : { nodes, edges };
     if (structuralErrors(diagram).length) return fail('This diagram is not well formed.');
-    if (!validateDiagram(diagram).valid) return fail('This diagram breaks a conservation law, so it has no valid answer.');
+    const full = validateFull(diagram);
+    if (!full.vertices.valid) return fail('This diagram breaks a conservation law, so it has no valid answer.');
+    if (!full.valid) return fail('This diagram has a hadron that does not match its quark lines, or a decay without enough energy.');
 
     return {
       ok: true,
@@ -118,6 +158,7 @@ export function decodeShared(compressed: string): DecodeResult {
         message: typeof raw.m === 'string' ? raw.m.slice(0, LIMITS.message) : '',
         diagram,
         hidden,
+        hiddenGroups,
       },
     };
   } catch {
@@ -165,5 +206,6 @@ export function puzzleFromShared(data: SharedData, key: string): Puzzle {
     kind: data.hidden.every((id) => isExternalEdge(data.diagram, id)) ? 'external' : 'fill',
     diagram: data.diagram,
     hidden: data.hidden,
+    ...(data.hiddenGroups?.length ? { hiddenGroups: data.hiddenGroups } : {}),
   };
 }

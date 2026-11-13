@@ -1,5 +1,6 @@
 import type { GameState } from './game/state';
 import { emptyStats, sanitizeStats, type Stats } from './game/stats';
+import { isHadronId } from './engine/hadrons';
 import { isParticleId } from './engine/particles';
 import type { Puzzle } from './puzzle/types';
 
@@ -58,16 +59,29 @@ export function sanitizeGameState(raw: unknown, p: Puzzle): GameState | null {
     const v = (r.answers as Record<string, unknown> | undefined)?.[id];
     answers[id] = ok(v) ? (v as string) : null;
   }
+  const hg = p.hiddenGroups ?? [];
+  const okH = (v: unknown) => typeof v === 'string' && isHadronId(v);
+  const groupAnswers: GameState['groupAnswers'] = {};
+  for (const id of hg) {
+    const v = (r.groupAnswers as Record<string, unknown> | undefined)?.[id];
+    groupAnswers[id] = okH(v) ? (v as string) : null;
+  }
   const guesses: GameState['guesses'] = [];
   for (const g of r.guesses) {
     const ga = (g as { answers?: Record<string, unknown> })?.answers;
+    const gg = (g as { groups?: Record<string, unknown> })?.groups;
     const gm = (g as { marks?: unknown })?.marks;
-    if (!ga || !Array.isArray(gm) || gm.length !== p.hidden.length) return null;
+    if (!ga || !Array.isArray(gm) || gm.length !== p.hidden.length + hg.length) return null;
     if (!p.hidden.every((id) => ok(ga[id]))) return null;
+    if (hg.length && (!gg || !hg.every((id) => okH(gg[id])))) return null;
     if (!gm.every((m) => m === 'G' || m === 'Y' || m === 'R')) return null;
-    guesses.push({ answers: Object.fromEntries(p.hidden.map((id) => [id, ga[id] as string])), marks: gm });
+    guesses.push({
+      answers: Object.fromEntries(p.hidden.map((id) => [id, ga[id] as string])),
+      ...(hg.length ? { groups: Object.fromEntries(hg.map((id) => [id, (gg as Record<string, unknown>)[id] as string])) } : {}),
+      marks: gm,
+    });
   }
-  return { puzzleId: p.id, answers, guesses, status: r.status, gaveUp: r.gaveUp === true };
+  return { puzzleId: p.id, answers, groupAnswers, guesses, status: r.status, gaveUp: r.gaveUp === true };
 }
 
 export function loadDaily(dateKey: string, p: Puzzle): GameState | null {

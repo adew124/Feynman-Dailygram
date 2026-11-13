@@ -1,7 +1,7 @@
 import type { Diagram } from '../engine/types';
 
-/** fill = hide edge labels; external = hide external legs only; forbidden = find the one illegal vertex. */
-export type PuzzleKind = 'fill' | 'external' | 'forbidden';
+/** fill = hide edge labels; external = hide external legs only; forbidden = find the one illegal vertex; classify = allowed or suppressed? (decays). */
+export type PuzzleKind = 'fill' | 'external' | 'forbidden' | 'classify';
 
 /** Why a decay is suppressed relative to the parent's best available route. */
 export type SuppressionReason =

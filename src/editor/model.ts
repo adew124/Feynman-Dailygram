@@ -1,6 +1,8 @@
+import { groupContent } from '../engine/decays';
+import { getHadron, isHadronId } from '../engine/hadrons';
 import { physicalParticle } from '../engine/orientation';
 import { antiparticle, getParticle, isParticleId, type ParticleId } from '../engine/particles';
-import type { Diagram, DiagramEdge, DiagramNode } from '../engine/types';
+import type { Diagram, DiagramEdge, DiagramNode, HadronGroup } from '../engine/types';
 
 /**
  * Editor model. Unlike the engine's Diagram, each edge here stores the PHYSICAL
@@ -10,7 +12,7 @@ import type { Diagram, DiagramEdge, DiagramNode } from '../engine/types';
  */
 export const BOUNDS = { minX: 0, maxX: 8, minY: 0, maxY: 5 };
 export const SNAP = 0.5;
-export const LIMITS = { vertices: 16, externals: 12, edges: 30, hidden: 8, title: 60, message: 280 };
+export const LIMITS = { vertices: 16, externals: 12, edges: 30, hidden: 8, groups: 6, title: 60, message: 280 };
 
 export interface EdNode {
   id: string;
@@ -31,9 +33,25 @@ export interface EdEdge {
   bend?: number;
 }
 
+/**
+ * A hadron drawn as its quark lines: a stack of external points (one per quark) that the player connects to
+ * vertices, or to the points of a hadron on the other side (spectator lines).
+ */
+export interface EdGroup {
+  id: string;
+  /** Hadron id from the hadron table. */
+  hadron: string;
+  /** Which quark component of a mixed state is drawn (index into the hadron's components). */
+  comp: number;
+  /** External point ids, one per quark, top to bottom. */
+  nodes: string[];
+  hidden: boolean;
+}
+
 export interface EditorModel {
   nodes: EdNode[];
   edges: EdEdge[];
+  groups: EdGroup[];
   title: string;
   message: string;
   /** Counter for generating ids. */
@@ -41,7 +59,7 @@ export interface EditorModel {
 }
 
 export function emptyModel(): EditorModel {
-  return { nodes: [], edges: [], title: '', message: '', seq: 0 };
+  return { nodes: [], edges: [], groups: [], title: '', message: '', seq: 0 };
 }
 
 const clone = (m: EditorModel): EditorModel => JSON.parse(JSON.stringify(m)) as EditorModel;
@@ -81,13 +99,109 @@ function hasNode(m: EditorModel, id: string, kind?: EdNode['kind']): boolean {
   return m.nodes.some((n) => n.id === id && (!kind || n.kind === kind));
 }
 
+export function groupOfNode(m: EditorModel, nodeId: string): EdGroup | undefined {
+  return m.groups.find((g) => g.nodes.includes(nodeId));
+}
+
+/** Incoming (left half of the canvas) or outgoing hadron, from where it sits. */
+export function groupSide(m: EditorModel, g: EdGroup): 'in' | 'out' {
+  const xs = g.nodes.map((id) => m.nodes.find((n) => n.id === id)?.x ?? 0);
+  const mean = xs.reduce((a, b) => a + b, 0) / Math.max(1, xs.length);
+  return mean < (BOUNDS.minX + BOUNDS.maxX) / 2 ? 'in' : 'out';
+}
+
+/** The quark of the drawn component that belongs to external point `nodeId` of group `g`. */
+export function quarkOf(g: EdGroup, nodeId: string): ParticleId | null {
+  const h = getHadron(g.hadron);
+  const comp = h.components[Math.min(g.comp, h.components.length - 1)];
+  return comp.quarks[g.nodes.indexOf(nodeId)] ?? null;
+}
+
+const isUsed = (m: EditorModel, id: string) => m.edges.some((e) => e.a === id || e.b === id);
+
+/**
+ * Connect two points with a line. Allowed: two vertices; a vertex and a free quark point of a hadron; a free
+ * quark point of an incoming hadron and one of an outgoing hadron (a spectator quark). A line to a quark point
+ * is created with that quark's particle already chosen.
+ */
 export function addEdge(m: EditorModel, a: string, b: string): Result<string> {
-  if (a === b || !hasNode(m, a, 'vertex') || !hasNode(m, b, 'vertex')) return { ok: false, error: 'Connect two different vertices.' };
+  const A = m.nodes.find((n) => n.id === a);
+  const B = m.nodes.find((n) => n.id === b);
+  if (!A || !B || a === b) return { ok: false, error: 'Connect two different points.' };
   if (m.edges.length >= LIMITS.edges) return { ok: false, error: `At most ${LIMITS.edges} lines.` };
+  const ga = groupOfNode(m, a);
+  const gb = groupOfNode(m, b);
+  let p: ParticleId | null = null;
+  if (A.kind === 'vertex' && B.kind === 'vertex') {
+    // plain internal line
+  } else if (A.kind === 'vertex' && gb) {
+    if (isUsed(m, b)) return { ok: false, error: 'That quark line is already connected.' };
+    p = quarkOf(gb, b);
+  } else if (B.kind === 'vertex' && ga) {
+    if (isUsed(m, a)) return { ok: false, error: 'That quark line is already connected.' };
+    p = quarkOf(ga, a);
+  } else if (ga && gb) {
+    if (ga.id === gb.id) return { ok: false, error: 'Connect a quark line to a vertex, or to the other hadron.' };
+    if (isUsed(m, a) || isUsed(m, b)) return { ok: false, error: 'That quark line is already connected.' };
+    if (groupSide(m, ga) === groupSide(m, gb)) return { ok: false, error: 'A spectator quark runs from an incoming hadron to an outgoing one.' };
+    p = groupSide(m, ga) === 'in' ? quarkOf(ga, a) : quarkOf(gb, b);
+  } else {
+    return { ok: false, error: 'Connect two vertices, a vertex and a quark line of a hadron, or two hadrons.' };
+  }
   const n = clone(m);
   const id = `e${++n.seq}`;
-  n.edges.push({ id, a, b, p: null, hidden: false });
+  n.edges.push({ id, a, b, p, hidden: false });
   return { ok: true, model: n, value: id };
+}
+
+/** Place a hadron as a vertical stack of quark points around (x, y). */
+export function addGroup(m: EditorModel, hadronId: string, comp: number, x: number, y: number): Result<string> {
+  if (!isHadronId(hadronId)) return { ok: false, error: 'Unknown hadron.' };
+  const h = getHadron(hadronId);
+  const k = h.components[0].quarks.length;
+  if (m.groups.length >= LIMITS.groups) return { ok: false, error: `At most ${LIMITS.groups} hadrons.` };
+  if (countKind(m, 'external') + k > LIMITS.externals) return { ok: false, error: `At most ${LIMITS.externals} external points.` };
+  const c = clampPoint(x, y);
+  let top = c.y - Math.floor((k - 1) / 2) * SNAP;
+  top = Math.max(BOUNDS.minY, Math.min(BOUNDS.maxY - (k - 1) * SNAP, top));
+  const pts = Array.from({ length: k }, (_, i) => ({ x: c.x, y: top + i * SNAP }));
+  if (pts.some((p) => nodeAt(m, p.x, p.y))) return { ok: false, error: 'Something is already there.' };
+  const n = clone(m);
+  const ids = pts.map((p) => {
+    const id = `x${++n.seq}`;
+    n.nodes.push({ id, kind: 'external', x: p.x, y: p.y });
+    return id;
+  });
+  const gid = `g${++n.seq}`;
+  n.groups.push({ id: gid, hadron: hadronId, comp: Math.max(0, Math.min(comp, h.components.length - 1)), nodes: ids, hidden: false });
+  return { ok: true, model: n, value: gid };
+}
+
+/** Choose which component of a mixed state is drawn; quark lines already attached are relabelled. */
+export function setGroupComponent(m: EditorModel, groupId: string, comp: number): EditorModel {
+  const n = clone(m);
+  const g = n.groups.find((q) => q.id === groupId);
+  if (!g) return m;
+  g.comp = Math.max(0, Math.min(comp, getHadron(g.hadron).components.length - 1));
+  const side = groupSide(n, g);
+  for (const nid of g.nodes) {
+    const e = n.edges.find((q) => q.a === nid || q.b === nid);
+    if (!e) continue;
+    const other = n.nodes.find((q) => q.id === (e.a === nid ? e.b : e.a));
+    if (other?.kind === 'vertex' || side === 'in') e.p = quarkOf(g, nid);
+  }
+  return n;
+}
+
+export function toggleGroupHidden(m: EditorModel, groupId: string): EditorModel {
+  const n = clone(m);
+  const g = n.groups.find((q) => q.id === groupId);
+  if (g) g.hidden = !g.hidden;
+  return n;
+}
+
+export function hiddenGroupIds(m: EditorModel): string[] {
+  return m.groups.filter((g) => g.hidden).map((g) => g.id);
 }
 
 /** Add an external leg from `vertex` ending at a new external point (x, y). */
@@ -109,6 +223,26 @@ export function moveNode(m: EditorModel, id: string, x: number, y: number): Resu
   const p = clampPoint(x, y);
   const cur = m.nodes.find((n) => n.id === id);
   if (!cur) return { ok: false, error: 'No such point.' };
+  const g = groupOfNode(m, id);
+  if (g) {
+    // a hadron moves as one block
+    let dx = p.x - cur.x;
+    let dy = p.y - cur.y;
+    const pts = g.nodes.map((nid) => m.nodes.find((q) => q.id === nid)!);
+    dx = Math.max(BOUNDS.minX - Math.min(...pts.map((q) => q.x)), Math.min(BOUNDS.maxX - Math.max(...pts.map((q) => q.x)), dx));
+    dy = Math.max(BOUNDS.minY - Math.min(...pts.map((q) => q.y)), Math.min(BOUNDS.maxY - Math.max(...pts.map((q) => q.y)), dy));
+    if (dx === 0 && dy === 0) return { ok: true, model: m, value: undefined };
+    const moved = new Set(g.nodes);
+    if (pts.some((q) => m.nodes.some((o) => !moved.has(o.id) && Math.abs(o.x - (q.x + dx)) < 0.01 && Math.abs(o.y - (q.y + dy)) < 0.01))) {
+      return { ok: false, error: 'Something is already there.' };
+    }
+    const n = clone(m);
+    for (const q of n.nodes) if (moved.has(q.id)) {
+      q.x += dx;
+      q.y += dy;
+    }
+    return { ok: true, model: n, value: undefined };
+  }
   if (cur.x === p.x && cur.y === p.y) return { ok: true, model: m, value: undefined };
   const other = nodeAt(m, p.x, p.y);
   if (other && other.id !== id) return { ok: false, error: 'Something is already there.' };
@@ -119,12 +253,20 @@ export function moveNode(m: EditorModel, id: string, x: number, y: number): Resu
   return { ok: true, model: n, value: undefined };
 }
 
-/** Delete a vertex (with its lines) or an external point (with its line). */
+/** External points that stay even without a line: the quark points of hadrons. */
+function keepNodes(n: EditorModel): Set<string> {
+  return new Set([...n.edges.flatMap((e) => [e.a, e.b]), ...n.groups.flatMap((g) => g.nodes)]);
+}
+
+/** Delete a vertex (with its lines), an external point (with its line) or a whole hadron (via any of its points). */
 export function deleteNode(m: EditorModel, id: string): EditorModel {
   const n = clone(m);
-  n.nodes = n.nodes.filter((q) => q.id !== id);
-  n.edges = n.edges.filter((e) => e.a !== id && e.b !== id);
-  const used = new Set(n.edges.flatMap((e) => [e.a, e.b]));
+  const g = groupOfNode(n, id);
+  const gone = new Set(g ? g.nodes : [id]);
+  if (g) n.groups = n.groups.filter((q) => q.id !== g.id);
+  n.nodes = n.nodes.filter((q) => !gone.has(q.id));
+  n.edges = n.edges.filter((e) => !gone.has(e.a) && !gone.has(e.b));
+  const used = keepNodes(n);
   n.nodes = n.nodes.filter((q) => q.kind === 'vertex' || used.has(q.id)); // drop orphaned external points
   return n;
 }
@@ -132,7 +274,7 @@ export function deleteNode(m: EditorModel, id: string): EditorModel {
 export function deleteEdge(m: EditorModel, id: string): EditorModel {
   const n = clone(m);
   n.edges = n.edges.filter((e) => e.id !== id);
-  const used = new Set(n.edges.flatMap((e) => [e.a, e.b]));
+  const used = keepNodes(n);
   n.nodes = n.nodes.filter((q) => q.kind === 'vertex' || used.has(q.id));
   return n;
 }
@@ -145,7 +287,14 @@ export function setParticle(m: EditorModel, edgeId: string, physical: ParticleId
   return n;
 }
 
+/** Whether the line ends on a quark point of a hadron (such lines are hidden by hiding the whole hadron). */
+export function isHadronLeg(m: EditorModel, edgeId: string): boolean {
+  const e = m.edges.find((q) => q.id === edgeId);
+  return !!e && (!!groupOfNode(m, e.a) || !!groupOfNode(m, e.b));
+}
+
 export function toggleHidden(m: EditorModel, edgeId: string): EditorModel {
+  if (isHadronLeg(m, edgeId)) return m;
   const n = clone(m);
   const e = n.edges.find((q) => q.id === edgeId);
   if (e) e.hidden = !e.hidden;
@@ -195,7 +344,9 @@ export function toDiagram(m: EditorModel): Diagram {
     if (e.bend !== undefined) edge.bend = from === e.a ? e.bend : -e.bend;
     edges.push(edge);
   }
-  return { nodes, edges };
+  if (m.groups.length === 0) return { nodes, edges };
+  const hadrons: HadronGroup[] = m.groups.map((g) => ({ id: g.id, hadron: g.hadron, side: groupSide(m, g), nodes: [...g.nodes] }));
+  return { nodes, edges, hadrons };
 }
 
 /** Convert an engine diagram to an editor model (used for "start from a library process"). */
@@ -220,6 +371,21 @@ export function modelFromDiagram(d: Diagram, hidden: readonly string[] = [], tit
     rename.set(n.id, id);
     return { id, kind: n.kind, x: r2(n.x * s + cx), y: r2(n.y * s + cy) };
   });
+  const groups: EdGroup[] = [];
+  for (const g of d.hadrons ?? []) {
+    if (!g.hadron || !isHadronId(g.hadron)) continue;
+    const h = getHadron(g.hadron);
+    const content = groupContent(d, g);
+    const key = (qs: readonly string[]) => [...qs].sort().join(',');
+    const comp = content ? Math.max(0, h.components.findIndex((c) => key(c.quarks) === key(content))) : 0;
+    groups.push({
+      id: `g${++seq}`,
+      hadron: g.hadron,
+      comp,
+      nodes: g.nodes.map((nid) => rename.get(nid)!),
+      hidden: hid.has(g.id),
+    });
+  }
   const edges: EdEdge[] = d.edges.map((e) => {
     const out: EdEdge = {
       id: `e${++seq}`,
@@ -231,7 +397,7 @@ export function modelFromDiagram(d: Diagram, hidden: readonly string[] = [], tit
     if (e.bend !== undefined) out.bend = e.bend * s;
     return out;
   });
-  return { nodes, edges, title: title.slice(0, LIMITS.title), message: '', seq };
+  return { nodes, edges, groups, title: title.slice(0, LIMITS.title), message: '', seq };
 }
 
 /** Coerce untrusted JSON (e.g. a saved draft) into a safe model; falls back to empty. */
@@ -266,9 +432,26 @@ export function sanitizeModel(raw: unknown): EditorModel {
     edges.push(edge);
   }
   if (nodes.length > 40 || edges.length > 60) return emptyModel();
+  const groups: EdGroup[] = [];
+  const inGroup = new Set<string>();
+  for (const g of (Array.isArray(r.groups) ? r.groups : []) as Partial<EdGroup>[]) {
+    if (!g || typeof g.id !== 'string' || g.id.length > 12 || typeof g.hadron !== 'string' || !isHadronId(g.hadron)) return emptyModel();
+    const h = getHadron(g.hadron);
+    if (!Array.isArray(g.nodes) || g.nodes.length !== h.components[0].quarks.length) return emptyModel();
+    for (const nid of g.nodes) {
+      const node = nodes.find((q) => q.id === nid);
+      if (typeof nid !== 'string' || !node || node.kind !== 'external' || inGroup.has(nid)) return emptyModel();
+      inGroup.add(nid);
+    }
+    const comp = Number.isInteger(g.comp) ? (g.comp as number) : 0;
+    if (comp < 0 || comp >= h.components.length) return emptyModel();
+    groups.push({ id: g.id, hadron: g.hadron, comp, nodes: [...(g.nodes as string[])], hidden: g.hidden === true });
+  }
+  if (groups.length > LIMITS.groups) return emptyModel();
   return {
     nodes,
     edges,
+    groups,
     title: typeof r.title === 'string' ? r.title.slice(0, LIMITS.title) : '',
     message: typeof r.message === 'string' ? r.message.slice(0, LIMITS.message) : '',
     seq: num(r.seq) ? Math.max(0, Math.floor(r.seq as number)) : nodes.length + edges.length,
