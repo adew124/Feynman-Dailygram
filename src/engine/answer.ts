@@ -29,7 +29,7 @@ export function checkAnswer(
   const hiddenSet = new Set(hidden);
   const illegal = Object.keys(answer).filter((k) => !hiddenSet.has(k));
   const composed: Diagram = {
-    nodes: puzzle.nodes,
+    ...puzzle,
     edges: puzzle.edges.map((e) =>
       hiddenSet.has(e.id) ? { ...e, particle: answer[e.id] ?? null } : { ...e },
     ),

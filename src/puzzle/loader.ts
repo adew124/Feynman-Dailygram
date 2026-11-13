@@ -1,6 +1,8 @@
+import { externalEntities } from '../engine/decays';
+import { isHadronId } from '../engine/hadrons';
 import { getParticle, isParticleId } from '../engine/particles';
-import type { Diagram, DiagramEdge, DiagramNode } from '../engine/types';
-import type { ProcessEntry } from './types';
+import type { Diagram, DiagramEdge, DiagramNode, HadronGroup } from '../engine/types';
+import type { DecayInfo, ProcessEntry } from './types';
 
 /**
  * Compact on-disk format for library processes (see README, "Adding a process").
@@ -9,6 +11,10 @@ import type { ProcessEntry } from './types';
  *   externals: { "a":  [x, y] }          open ends of external legs
  *   legs:      [id, "in"|"out", ext, vertex, PHYSICAL particle]
  *   edges:     [id, from, to, particle, bend?]   internal lines
+ *   hadrons:   [groupId, hadronId, "in"|"out", [external node ids]]   quark lines grouped into a hadron
+ *   spectators:[id, inExt, outExt, PHYSICAL particle]   a quark passing straight from an incoming
+ *              hadron to an outgoing one (an edge between two external nodes)
+ *   decay:     classification (see DecayInfo)
  *
  * Legs are written with the physical particle (what a student would label the
  * leg); the loader works out arrow direction and the stored along-the-arrow
@@ -25,6 +31,9 @@ export interface RawProcess {
   legs: [string, 'in' | 'out', string, string, string][];
   edges?: ([string, string, string, string] | [string, string, string, string, number])[];
   hideSets?: string[][];
+  hadrons?: [string, string, 'in' | 'out', string[]][];
+  spectators?: [string, string, string, string][];
+  decay?: DecayInfo;
 }
 
 function fail(id: string, msg: string): never {
@@ -61,6 +70,18 @@ export function parseProcess(raw: RawProcess): ProcessEntry {
       particle: stored,
     });
   }
+  for (const [eid, inExt, outExt, physical] of raw.spectators ?? []) {
+    if (!(inExt in raw.externals) || !(outExt in raw.externals)) fail(id, `spectator ${eid}: unknown external`);
+    if (!isParticleId(physical)) fail(id, `spectator ${eid}: unknown particle ${physical}`);
+    const p = getParticle(physical);
+    const flip = p.fermion && p.isAnti; // antiquark: arrow runs backward in time
+    edges.push({
+      id: eid,
+      from: flip ? outExt : inExt,
+      to: flip ? inExt : outExt,
+      particle: flip ? p.antiId : physical,
+    });
+  }
   for (const [eid, from, to, particle, bend] of raw.edges ?? []) {
     if (!nodeIds.has(from) || !nodeIds.has(to)) fail(id, `edge ${eid}: unknown node`);
     if (!isParticleId(particle)) fail(id, `edge ${eid}: unknown particle ${particle}`);
@@ -72,7 +93,21 @@ export function parseProcess(raw: RawProcess): ProcessEntry {
     for (const e of set) if (!ids.has(e)) fail(id, `hideSet references unknown edge ${e}`);
   }
 
-  const diagram: Diagram = { nodes, edges };
+  const hadrons: HadronGroup[] = [];
+  const grouped = new Set<string>();
+  for (const [gid, hadron, side, gnodes] of raw.hadrons ?? []) {
+    if (!isHadronId(hadron)) fail(id, `hadron group ${gid}: unknown hadron ${hadron}`);
+    for (const n of gnodes) {
+      if (!(n in raw.externals)) fail(id, `hadron group ${gid}: ${n} is not an external node`);
+      if (grouped.has(n)) fail(id, `hadron group ${gid}: ${n} is already in another group`);
+      grouped.add(n);
+    }
+    hadrons.push({ id: gid, hadron, side, nodes: gnodes });
+  }
+
+  const diagram: Diagram = hadrons.length ? { nodes, edges, hadrons } : { nodes, edges };
+  const ents = externalEntities(diagram);
+  const isDecay = !!ents && ents.filter((e) => e.side === 'in').length === 1 && ents.filter((e) => e.side === 'out').length >= 2;
   return {
     id,
     name: raw.name,
@@ -80,5 +115,7 @@ export function parseProcess(raw: RawProcess): ProcessEntry {
     explanation: raw.explanation,
     diagram,
     hideSets: raw.hideSets,
+    isDecay,
+    ...(raw.decay ? { decay: raw.decay } : {}),
   };
 }

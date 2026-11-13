@@ -47,7 +47,7 @@ export function solveWithInfo(
   maxSteps = 3_000_000,
 ): SolveInfo {
   const work: Diagram = {
-    nodes: diagram.nodes,
+    ...diagram,
     edges: diagram.edges.map((e) => (free.includes(e.id) ? { ...e, particle: null } : { ...e })),
   };
   const byId = new Map(work.edges.map((e) => [e.id, e]));

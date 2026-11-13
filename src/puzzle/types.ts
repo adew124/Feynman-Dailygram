@@ -3,6 +3,31 @@ import type { Diagram } from '../engine/types';
 /** fill = hide edge labels; external = hide external legs only; forbidden = find the one illegal vertex. */
 export type PuzzleKind = 'fill' | 'external' | 'forbidden';
 
+/** Why a decay is suppressed relative to the parent's best available route. */
+export type SuppressionReason =
+  | 'cabibbo-single'
+  | 'cabibbo-double'
+  | 'ckm-b-u'
+  | 'helicity'
+  | 'ozi'
+  | 'color'
+  | 'loop-gim'
+  | 'isospin';
+
+export interface DecayInfo {
+  /** Relative to the parent's best route, not in absolute terms. */
+  category: 'allowed' | 'suppressed';
+  interaction: 'strong' | 'em' | 'weak';
+  /** Empty for allowed decays. */
+  reasons: SuppressionReason[];
+  /** Library id of the allowed decay this one should be compared with (suppressed decays). */
+  compareWith?: string;
+  /** Branching ratio as a fraction (0.0123 = 1.23 %). */
+  br: number;
+  /** Display text for the branching ratio, e.g. "(1.23 ± 0.02) × 10⁻⁴". */
+  brText: string;
+}
+
 /** A process in the curated library. */
 export interface ProcessEntry {
   id: string;
@@ -18,6 +43,10 @@ export interface ProcessEntry {
    * the generator picks random subsets.
    */
   hideSets?: string[][];
+  /** True for one particle in, two or more out. */
+  isDecay: boolean;
+  /** Classification, present for the curated hadron/particle decays. */
+  decay?: DecayInfo;
 }
 
 /** A playable puzzle: a library process plus the chosen hidden edges. */

@@ -34,7 +34,22 @@ export interface DiagramEdge {
   bend?: number;
 }
 
+/**
+ * A hadron drawn as its quark lines. The group owns EXTERNAL NODES (each external node has
+ * exactly one edge), not edges, so a spectator quark can run from an incoming hadron straight to
+ * an outgoing one. The group's quark content is the physical particle on each of those edges.
+ */
+export interface HadronGroup {
+  id: string;
+  /** Hadron id from the hadron table; null = hidden (the player must choose it). */
+  hadron: string | null;
+  side: 'in' | 'out';
+  nodes: string[];
+}
+
 export interface Diagram {
   nodes: DiagramNode[];
   edges: DiagramEdge[];
+  /** Hadrons made of the diagram's external quark lines (decays at the quark level). */
+  hadrons?: HadronGroup[];
 }
