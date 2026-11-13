@@ -1,7 +1,8 @@
+import { legEdge } from '../engine/decays';
 import type { Diagram, DiagramEdge } from '../engine/types';
 import type { Pt } from './geometry';
 import { arrowHead, strokePath, type LineKind } from './lines';
-import type { EdgeState, EdgeView } from './view';
+import type { EdgeState, EdgeView, GroupView } from './view';
 
 export interface SceneEdge {
   id: string;
@@ -25,11 +26,29 @@ export interface SceneVertex {
   label?: string;
 }
 
+/** A hadron drawn as a rounded outline around the ends of its quark lines. */
+export interface SceneGroup {
+  id: string;
+  side: 'in' | 'out';
+  state: EdgeState;
+  hidden: boolean;
+  /** Outline rectangle (pixels). */
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  /** Hadron symbol, set outside the outline. */
+  label: { text: string; x: number; y: number; anchor: 'start' | 'end' };
+  /** One small label per quark line, between the outline and the hadron symbol. */
+  quarks: { text: string; x: number; y: number; anchor: 'start' | 'end' }[];
+}
+
 export interface Scene {
   width: number;
   height: number;
   edges: SceneEdge[];
   vertices: SceneVertex[];
+  groups: SceneGroup[];
   /** Layout-unit -> pixel mapping, so editors can convert pointer positions back. */
   transform: { offX: number; offY: number; scale: number; minX: number; minY: number };
   /** Position of the small "time" arrow drawn at the bottom. */
@@ -47,6 +66,8 @@ export interface SceneOptions {
   bounds?: { minX: number; maxX: number; minY: number; maxY: number };
   /** Draw an arrowhead on unknown (hidden) edges? Default false: an arrow would leak "this is a fermion". */
   arrowOnUnknown?: boolean;
+  /** Per-group display info (see buildGroupViews). Required to draw hadron outlines. */
+  groupViews?: Record<string, GroupView>;
 }
 
 /**
@@ -83,6 +104,8 @@ export function edgeBends(d: Diagram): Record<string, number> {
 export function buildScene(d: Diagram, views: Record<string, EdgeView>, o: SceneOptions = {}): Scene {
   const W = o.width ?? 520;
   const pad = o.padding ?? 56;
+  // hadron outlines and their labels need extra room left and right
+  const padX = o.padding ?? (d.hadrons?.length ? 82 : 56);
   const maxH = o.maxHeight ?? 420;
   const minH = o.minHeight ?? 220;
 
@@ -108,7 +131,7 @@ export function buildScene(d: Diagram, views: Record<string, EdgeView>, o: Scene
   const bh = Math.max(maxY - minY, 1e-6);
   // leave room at the bottom for the time axis
   const axisRoom = 26;
-  const scale = Math.min((W - 2 * pad) / bw, (maxH - 2 * pad - axisRoom) / bh);
+  const scale = Math.min((W - 2 * padX) / bw, (maxH - 2 * pad - axisRoom) / bh);
   const contentH = bh * scale;
   const H = Math.max(minH, contentH + 2 * pad + axisRoom);
   const offX = (W - bw * scale) / 2;
@@ -126,6 +149,7 @@ export function buildScene(d: Diagram, views: Record<string, EdgeView>, o: Scene
   };
 
   const kindOf = new Map(d.nodes.map((n) => [n.id, n.kind]));
+  const groupedNodes = new Set((d.hadrons ?? []).flatMap((g) => g.nodes));
   const edges: SceneEdge[] = [];
   for (const e of d.edges) {
     if (e.from === e.to) continue; // self-loops are not drawable (and not valid)
@@ -139,7 +163,9 @@ export function buildScene(d: Diagram, views: Record<string, EdgeView>, o: Scene
     const arrow = wantsArrow ? arrowHead(curve.point(0.5), curve.tangent(0.5)) : null;
 
     let label: SceneEdge['label'] = null;
-    if (v.label) {
+    // quark legs of a hadron are labelled by their group (see below), not individually
+    const inGroup = groupedNodes.has(e.from) || groupedNodes.has(e.to);
+    if (v.label && !inGroup) {
       const OFF = 20;
       if (external && kindOf.get(e.from) !== kindOf.get(e.to)) {
         const extIsFrom = kindOf.get(e.from) === 'external';
@@ -171,12 +197,42 @@ export function buildScene(d: Diagram, views: Record<string, EdgeView>, o: Scene
     label: o.vertexLabels?.[n.id],
   }));
 
+  const groups: SceneGroup[] = [];
+  for (const g of d.hadrons ?? []) {
+    const view = o.groupViews?.[g.id];
+    if (!view || g.nodes.length === 0) continue;
+    const pts = g.nodes.map((nid) => ({ nid, ...P(nid) }));
+    const cx = pts.reduce((a, p) => a + p.x, 0) / pts.length;
+    const top = Math.min(...pts.map((p) => p.y)) - 13;
+    const bottom = Math.max(...pts.map((p) => p.y)) + 13;
+    const HALF = 9;
+    const inn = g.side === 'in';
+    const dir = inn ? -1 : 1;
+    const anchor = inn ? 'end' : 'start';
+    groups.push({
+      id: g.id,
+      side: g.side,
+      state: view.state,
+      hidden: view.hidden,
+      x: cx - HALF,
+      y: top,
+      w: 2 * HALF,
+      h: bottom - top,
+      label: { text: view.label, x: cx + dir * (HALF + 5 + 18), y: (top + bottom) / 2, anchor },
+      quarks: pts.map((p) => {
+        const e = legEdge(d, p.nid);
+        return { text: (e && views[e.id]?.label) || '', x: cx + dir * (HALF + 5), y: p.y, anchor };
+      }),
+    });
+  }
+
   const axisY = H - 14;
   return {
     width: W,
     height: H,
     edges,
     vertices,
+    groups,
     transform: { offX, offY, scale, minX, minY },
     timeAxis: { x0: W / 2 - 34, x1: W / 2 + 34, y: axisY },
   };

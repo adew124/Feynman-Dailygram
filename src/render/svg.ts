@@ -1,6 +1,6 @@
 import type { Diagram } from '../engine/types';
 import { buildScene, type Scene, type SceneOptions } from './scene';
-import { buildEdgeViews, type ViewOptions } from './view';
+import { buildEdgeViews, buildGroupViews, type ViewOptions } from './view';
 
 export function escapeXml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -39,6 +39,14 @@ export function sceneToSvg(scene: Scene, ariaLabel = 'Feynman diagram', layers: 
     `<svg class="feynman" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapeXml(ariaLabel)}" preserveAspectRatio="xMidYMid meet">`,
   );
   if (layers.under) parts.push(layers.under);
+  // 0. hadron outlines (beneath the quark lines)
+  parts.push('<g class="hadrons">');
+  for (const g of scene.groups) {
+    parts.push(
+      `<rect class="hpill s-${g.state}" x="${g.x.toFixed(1)}" y="${g.y.toFixed(1)}" width="${g.w}" height="${g.h.toFixed(1)}" rx="${g.w / 2}" data-hadron="${escapeXml(g.id)}"/>`,
+    );
+  }
+  parts.push('</g>');
   // 1. strokes
   parts.push('<g class="strokes">');
   for (const e of scene.edges) {
@@ -60,6 +68,17 @@ export function sceneToSvg(scene: Scene, ariaLabel = 'Feynman diagram', layers: 
   parts.push('</g>');
   // 3. labels
   parts.push('<g class="labels">');
+  for (const g of scene.groups) {
+    parts.push(
+      `<text class="hlabel s-${g.state}" x="${g.label.x.toFixed(1)}" y="${g.label.y.toFixed(1)}" text-anchor="${g.label.anchor}" dominant-baseline="central">${symbolToTspans(g.label.text)}</text>`,
+    );
+    for (const q of g.quarks) {
+      if (!q.text) continue;
+      parts.push(
+        `<text class="qlabel s-${g.state}" x="${q.x.toFixed(1)}" y="${q.y.toFixed(1)}" text-anchor="${q.anchor}" dominant-baseline="central">${symbolToTspans(q.text)}</text>`,
+      );
+    }
+  }
   for (const e of scene.edges) {
     if (!e.label) continue;
     const { x, y, anchor, text } = e.label;
@@ -83,6 +102,15 @@ export function sceneToSvg(scene: Scene, ariaLabel = 'Feynman diagram', layers: 
       : '';
     parts.push(`<path class="hit" d="${e.hitD}" data-edge-hit="${escapeXml(e.id)}"${a11y}/>`);
   }
+  for (const g of scene.groups) {
+    const a11y =
+      g.state !== 'normal'
+        ? ` tabindex="0" role="button" aria-label="Hadron, ${g.state === 'empty' ? 'choose a particle' : 'change particle'}"`
+        : '';
+    parts.push(
+      `<rect class="ghit" x="${(g.x - 6).toFixed(1)}" y="${(g.y - 4).toFixed(1)}" width="${g.w + 12}" height="${(g.h + 8).toFixed(1)}" data-group-hit="${escapeXml(g.id)}"${a11y}/>`,
+    );
+  }
   parts.push('</g>');
   if (layers.over) parts.push(layers.over);
   parts.push('</svg>');
@@ -96,8 +124,29 @@ export interface RenderOptions extends ViewOptions, SceneOptions {
 /** One-call convenience: diagram + game state -> SVG markup. */
 export function renderDiagram(d: Diagram, o: RenderOptions = {}): string {
   const views = buildEdgeViews(d, o);
-  const scene = buildScene(d, views, o);
+  const scene = buildScene(d, views, { ...o, groupViews: buildGroupViews(d, o) });
   return sceneToSvg(scene, o.ariaLabel);
+}
+
+/** Like onEdgeTap, for the outline of a hadron group (hidden hadron puzzles). */
+export function onGroupTap(container: HTMLElement, onGroup: (groupId: string, viaKeyboard: boolean) => void): () => void {
+  const click = (ev: Event) => {
+    const t = (ev.target as Element | null)?.closest?.('[data-group-hit]');
+    if (t) onGroup(t.getAttribute('data-group-hit')!, false);
+  };
+  const key = (ev: KeyboardEvent) => {
+    if (ev.key !== 'Enter' && ev.key !== ' ') return;
+    const t = (ev.target as Element | null)?.closest?.('[data-group-hit]');
+    if (!t) return;
+    ev.preventDefault();
+    onGroup(t.getAttribute('data-group-hit')!, true);
+  };
+  container.addEventListener('click', click);
+  container.addEventListener('keydown', key);
+  return () => {
+    container.removeEventListener('click', click);
+    container.removeEventListener('keydown', key);
+  };
 }
 
 /**

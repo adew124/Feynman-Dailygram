@@ -1,3 +1,4 @@
+import { getHadron } from '../engine/hadrons';
 import { physicalParticle } from '../engine/orientation';
 import { getParticle, type ParticleId } from '../engine/particles';
 import type { Diagram } from '../engine/types';
@@ -32,6 +33,38 @@ export interface ViewOptions {
   wrong?: readonly string[];
   correct?: readonly string[];
   partial?: readonly string[];
+  /** Hadron groups the player must identify: their quark legs are shown as "?". */
+  hiddenGroups?: readonly string[];
+  /** The player's hadron choice per hidden group (hadron id). */
+  groupAnswers?: Record<string, string | null | undefined>;
+  /** Display state per hidden group (empty/filled/selected/correct/partial/wrong). */
+  groupStates?: Record<string, EdgeState>;
+}
+
+/** What to draw for one hadron group (the outline around its quark lines). */
+export interface GroupView {
+  /** Hadron symbol, or "?" while hidden and unanswered. */
+  label: string;
+  state: EdgeState;
+  hidden: boolean;
+}
+
+export function buildGroupViews(d: Diagram, o: ViewOptions = {}): Record<string, GroupView> {
+  const hidden = new Set(o.hiddenGroups ?? []);
+  const out: Record<string, GroupView> = {};
+  for (const g of d.hadrons ?? []) {
+    if (hidden.has(g.id)) {
+      const ans = o.groupAnswers?.[g.id] ?? null;
+      out[g.id] = {
+        label: ans ? getHadron(ans).symbol : '?',
+        state: o.groupStates?.[g.id] ?? (ans ? 'filled' : 'empty'),
+        hidden: true,
+      };
+    } else {
+      out[g.id] = { label: g.hadron ? getHadron(g.hadron).symbol : '?', state: 'normal', hidden: false };
+    }
+  }
+  return out;
 }
 
 /**
@@ -46,7 +79,21 @@ export function buildEdgeViews(d: Diagram, o: ViewOptions = {}): Record<string, 
   const correct = new Set(o.correct ?? []);
   const partial = new Set(o.partial ?? []);
   const out: Record<string, EdgeView> = {};
+  const groupViews = buildGroupViews(d, o);
+  // quark legs of hidden hadron groups: unknown line, "?" label, the group's state
+  const legState = new Map<string, EdgeState>();
+  for (const g of d.hadrons ?? []) {
+    if (!groupViews[g.id].hidden) continue;
+    for (const nid of g.nodes) {
+      for (const e of d.edges) if (e.from === nid || e.to === nid) legState.set(e.id, groupViews[g.id].state);
+    }
+  }
   for (const e of d.edges) {
+    const gs = legState.get(e.id);
+    if (gs && !hidden.has(e.id)) {
+      out[e.id] = { kind: 'unknown', label: '?', state: gs };
+      continue;
+    }
     let state: EdgeState = 'normal';
     let label: string | null = null;
     let kind: LineKind = e.particle ? lineKindForParticle(e.particle) : 'unknown';

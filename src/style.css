@@ -291,3 +291,22 @@ dialog { max-height: 88vh; overflow: auto; }
 /* forbidden-vertex puzzle: big invisible tap targets on vertices */
 svg.feynman .vhit { fill: transparent; stroke: none; cursor: pointer; }
 svg.feynman .vhit:focus-visible { outline: none; stroke: var(--accent); stroke-opacity: 0.5; stroke-width: 3; }
+
+/* ---------- hadrons drawn as quark lines ---------- */
+svg.feynman .hpill { fill: var(--surface); stroke: var(--muted); stroke-width: 1.8; }
+svg.feynman .hpill.s-empty { stroke: var(--empty); stroke-dasharray: 3 4; }
+svg.feynman .hpill.s-filled { stroke: var(--line); }
+svg.feynman .hpill.s-selected { stroke: var(--accent); stroke-width: 2.6; }
+svg.feynman .hpill.s-correct { stroke: var(--ok); }
+svg.feynman .hpill.s-partial { stroke: var(--warn); }
+svg.feynman .hpill.s-wrong { stroke: var(--bad); }
+svg.feynman .hlabel, svg.feynman .qlabel { fill: var(--text); font-family: 'Cambria Math', 'STIX Two Math', 'Times New Roman', serif; paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; pointer-events: none; }
+svg.feynman .hlabel { font-size: 23px; font-weight: 600; }
+svg.feynman .qlabel { font-size: 16px; fill: var(--muted); }
+svg.feynman .hlabel.s-empty, svg.feynman .qlabel.s-empty { fill: var(--empty); }
+svg.feynman .hlabel.s-selected, svg.feynman .qlabel.s-selected { fill: var(--accent); }
+svg.feynman .hlabel.s-correct, svg.feynman .qlabel.s-correct { fill: var(--ok); }
+svg.feynman .hlabel.s-partial, svg.feynman .qlabel.s-partial { fill: var(--warn); }
+svg.feynman .hlabel.s-wrong, svg.feynman .qlabel.s-wrong { fill: var(--bad); }
+svg.feynman .ghit { fill: transparent; stroke: none; cursor: pointer; }
+svg.feynman .ghit:focus-visible { outline: none; stroke: var(--accent); stroke-opacity: 0.5; stroke-width: 3; }
