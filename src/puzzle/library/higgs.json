@@ -1,20 +1,5 @@
 [
   {
-    "id": "h-bbbar",
-    "name": "H → b b̄",
-    "difficulty": 2,
-    "explanation": "The Higgs boson decays most often into a bottom quark and antiquark, since it couples in proportion to mass and the b is the heaviest quark it can decay into. The pair has net zero charge, matching the neutral Higgs.",
-    "vertices": { "v1": [1, 0] },
-    "externals": { "a": [0, 0], "c": [2, -1.2], "d": [2, 1.2] },
-    "legs": [
-      ["h_in", "in", "a", "v1", "H"],
-      ["b_out", "out", "c", "v1", "b"],
-      ["bbar_out", "out", "d", "v1", "bbar"]
-    ],
-    "edges": [],
-    "hideSets": [["bbar_out"], ["b_out"]]
-  },
-  {
     "id": "ee-zh",
     "name": "e⁺e⁻ → Z H (Higgs-strahlung)",
     "difficulty": 4,

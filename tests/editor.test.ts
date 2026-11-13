@@ -187,7 +187,8 @@ describe('physical labels vs arrows (toDiagram)', () => {
 });
 
 describe('library round trip through the editor model', () => {
-  for (const entry of LIBRARY) {
+  // decays with hadron groups need the editor's hadron support (see the hadron editor tests)
+  for (const entry of LIBRARY.filter((e) => !e.diagram.hadrons?.length)) {
     it(entry.id, () => {
       const hidden = entry.hideSets?.[0] ?? [];
       const m = modelFromDiagram(entry.diagram, hidden);
@@ -388,7 +389,7 @@ describe('share codec', () => {
       expect(d).toBeLessThanOrEqual(7);
       expect(describeDiagram(e.diagram)).toMatch(/interactions/);
     }
-    expect(estimateDifficulty(findProcess('z-mumu')!.diagram)).toBeLessThan(estimateDifficulty(findProcess('kaon-box')!.diagram));
+    expect(estimateDifficulty(findProcess('dec-z-mumu')!.diagram)).toBeLessThan(estimateDifficulty(findProcess('kaon-box')!.diagram));
   });
 });
 

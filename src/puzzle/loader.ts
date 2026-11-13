@@ -89,9 +89,6 @@ export function parseProcess(raw: RawProcess): ProcessEntry {
   }
   const ids = new Set(edges.map((e) => e.id));
   if (ids.size !== edges.length) fail(id, 'duplicate edge id');
-  for (const set of raw.hideSets ?? []) {
-    for (const e of set) if (!ids.has(e)) fail(id, `hideSet references unknown edge ${e}`);
-  }
 
   const hadrons: HadronGroup[] = [];
   const grouped = new Set<string>();
@@ -103,6 +100,11 @@ export function parseProcess(raw: RawProcess): ProcessEntry {
       grouped.add(n);
     }
     hadrons.push({ id: gid, hadron, side, nodes: gnodes });
+  }
+
+  const hideable = new Set([...ids, ...hadrons.map((g) => g.id)]);
+  for (const set of raw.hideSets ?? []) {
+    for (const e of set) if (!hideable.has(e)) fail(id, `hideSet references unknown edge ${e}`);
   }
 
   const diagram: Diagram = hadrons.length ? { nodes, edges, hadrons } : { nodes, edges };

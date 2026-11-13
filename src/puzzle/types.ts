@@ -60,6 +60,8 @@ export interface Puzzle {
   kind: PuzzleKind;
   diagram: Diagram;
   hidden: string[];
+  /** Hadron groups the player must identify (decays at the quark level). */
+  hiddenGroups?: string[];
   /** Optional message from a puzzle creator (shared puzzles). */
   title?: string;
   message?: string;

@@ -72,8 +72,8 @@ describe('puzzle generation', () => {
   it('every library process has a valid diagram and at least one good hide set', () => {
     for (const e of LIBRARY) {
       const p = makePuzzle(e, 'test');
-      expect(p.hidden.length).toBeGreaterThan(0);
-      expect(acceptableHideSet(e.diagram, p.hidden), e.id).toBe(true);
+      expect(p.hidden.length + (p.hiddenGroups?.length ?? 0)).toBeGreaterThan(0);
+      expect(acceptableHideSet(e.diagram, [...p.hidden, ...(p.hiddenGroups ?? [])]), e.id).toBe(true);
     }
   });
 

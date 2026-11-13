@@ -13,7 +13,7 @@ import { LIBRARY } from '../src/puzzle/library';
 
 describe('forbidden-vertex generator', () => {
   it('every library process yields a puzzle with exactly one invalid vertex', () => {
-    for (const entry of LIBRARY) {
+    for (const entry of LIBRARY.filter((e) => !e.diagram.hadrons?.length)) {
       const p = makeForbiddenPuzzle(entry, 'test-seed');
       expect(p, entry.id).not.toBeNull();
       const r = validateDiagram(p!.diagram);
@@ -38,13 +38,20 @@ describe('forbidden-vertex generator', () => {
   });
 
   it('only swaps external legs, and the swapped leg touches the bad vertex', () => {
-    for (const entry of LIBRARY) {
+    for (const entry of LIBRARY.filter((e) => !e.diagram.hadrons?.length)) {
       const p = makeForbiddenPuzzle(entry, 'x')!;
       const e = p.diagram.edges.find((x) => x.id === p.forbidden!.edgeId)!;
       expect([e.from, e.to]).toContain(p.forbidden!.vertexId);
       const kinds = new Map(p.diagram.nodes.map((n) => [n.id, n.kind]));
       expect([kinds.get(e.from), kinds.get(e.to)]).toContain('external');
     }
+  });
+});
+
+describe('forbidden-vertex generator and hadrons', () => {
+  it('returns null for decays drawn with hadrons (a swapped quark leg would also break its hadron)', () => {
+    const decay = LIBRARY.find((e) => e.diagram.hadrons?.length)!;
+    expect(makeForbiddenPuzzle(decay, 's')).toBeNull();
   });
 });
 

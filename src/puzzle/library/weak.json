@@ -1,20 +1,5 @@
 [
   {
-    "id": "z-mumu",
-    "name": "Z → μ⁺μ⁻",
-    "difficulty": 1,
-    "explanation": "A Z boson decays into a muon and its antimuon. The Z couples to a fermion and its own antiparticle, so the two decay products always have opposite charge.",
-    "vertices": { "v1": [1, 0] },
-    "externals": { "a": [0, 0], "c": [2, -1.2], "d": [2, 1.2] },
-    "legs": [
-      ["z_in", "in", "a", "v1", "Z"],
-      ["mu_out", "out", "c", "v1", "mu-"],
-      ["amu_out", "out", "d", "v1", "mu+"]
-    ],
-    "edges": [],
-    "hideSets": [["amu_out"], ["mu_out"]]
-  },
-  {
     "id": "z-bbbar",
     "name": "Z → b b̄",
     "difficulty": 1,
@@ -60,37 +45,6 @@
     ],
     "edges": [["W", "v1", "v2", "W+"]],
     "hideSets": [["W"], ["nu"], ["e"]]
-  },
-  {
-    "id": "mu-decay",
-    "name": "Muon decay μ⁻ → e⁻ ν̄ₑ ν_μ",
-    "difficulty": 2,
-    "explanation": "A muon turns into a muon neutrino by emitting a virtual W⁻, which becomes an electron and an electron antineutrino. Muon and electron lepton numbers are each conserved, which is why a neutrino and an antineutrino of different families appear.",
-    "vertices": { "v1": [1, 0], "v2": [2, 1] },
-    "externals": { "a": [0, 0], "c": [3, -1], "d": [3, 1], "e": [3, 2] },
-    "legs": [
-      ["mu_in", "in", "a", "v1", "mu-"],
-      ["numu", "out", "c", "v1", "nu_mu"],
-      ["e_out", "out", "d", "v2", "e-"],
-      ["nuebar", "out", "e", "v2", "anti_nu_e"]
-    ],
-    "edges": [["W", "v1", "v2", "W-"]],
-    "hideSets": [["W"], ["nuebar"], ["numu"]]
-  },
-  {
-    "id": "t-bw",
-    "name": "t → b W⁺",
-    "difficulty": 2,
-    "explanation": "The top quark decays almost always into a bottom quark and a real W⁺ boson, because the other CKM couplings are tiny. It decays so fast that it never forms hadrons.",
-    "vertices": { "v1": [1, 0] },
-    "externals": { "a": [0, 0], "c": [2, -1.2], "d": [2, 1.2] },
-    "legs": [
-      ["t_in", "in", "a", "v1", "t"],
-      ["b_out", "out", "c", "v1", "b"],
-      ["w_out", "out", "d", "v1", "W+"]
-    ],
-    "edges": [],
-    "hideSets": [["w_out"]]
   },
   {
     "id": "w-munu",

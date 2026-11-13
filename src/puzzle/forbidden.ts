@@ -15,6 +15,8 @@ import type { ProcessEntry, Puzzle } from './types';
 export function makeForbiddenPuzzle(entry: ProcessEntry, seed: string): Puzzle | null {
   const rng = rngFor(`forbid:${seed}:${entry.id}`);
   const d = entry.diagram;
+  // swapping one quark leg would also break its hadron, so decays drawn with hadrons are not used
+  if (d.hadrons?.length) return null;
   const externals = shuffle(rng, d.edges.filter((e) => isExternalEdge(d, e.id)));
   const swaps: { edgeId: string; from: string; to: string; sameKind: boolean }[] = [];
   for (const e of externals) {
