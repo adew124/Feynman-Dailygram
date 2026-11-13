@@ -6,11 +6,16 @@ baryon number and each lepton family number. A static site (Vite + TypeScript, n
 
 **Features**
 - **Daily puzzle**: the same puzzle for everyone each local day, easy on Monday up to hard on Sunday. 3 attempts,
-  per-vertex hints, spoiler-free emoji share card, streaks and stats.
-- **Practice**: unlimited random puzzles, filterable by difficulty (1-7) and by type: fill in the particles, or
-  **spot the forbidden vertex** (a fully labelled diagram where one leg was swapped; tap the one vertex that breaks a rule).
-- **Create**: a puzzle editor (drag vertices, draw lines, pick particles, hide lines) that shares a puzzle as a link.
-- **Library**: 51 real processes, from beta decay and e+e- -> mu+mu- to penguins, meson-mixing boxes and Higgs loops.
+  per-vertex hints, spoiler-free emoji share card, streaks and stats. It can be a scattering process or a decay.
+- **Practice**: unlimited random puzzles, filterable by difficulty (1-7), by scattering / decays, by allowed /
+  suppressed decays, and by type: fill in the particles (including hidden **hadrons**), **spot the forbidden vertex**
+  (a fully labelled diagram where one leg was swapped; tap the one vertex that breaks a rule), or **allowed or
+  suppressed?** (classify a decay and say why).
+- **Create**: a puzzle editor (drag vertices, draw lines, pick particles, place hadrons, hide lines) that shares a
+  puzzle as a link.
+- **Library**: 85 real processes, from beta decay and e+e- -> mu+mu- to penguins, meson-mixing boxes and Higgs loops,
+  plus 38 particle decays drawn at the quark level (hadrons shown with their quark content, classified as allowed or
+  suppressed, with PDG branching ratios).
 - Any valid assignment is accepted, not just a stored answer key.
 
 ## Run locally
@@ -69,6 +74,67 @@ Notes:
 - **Storage.** Progress, stats, theme and the editor draft live in `localStorage` under the `fdp:v1:` prefix, and the
   app still works if storage is unavailable.
 
+## Decays and hadrons
+Decays (one particle in, two or more out) are drawn at the quark level. A hadron is its quark lines, grouped by a rounded
+outline labelled with the hadron symbol; spectator quarks run straight from the initial to the final hadron.
+
+- **Hadron table** (`src/engine/hadrons.ts`): symbol, quark content (every component of mixed states such as π⁰, η, η′, ρ⁰,
+  ω, φ, K_S, K_L, with amplitudes), charge, baryon number, strangeness/charm/beauty (PDG sign convention), mass and width.
+  Masses and widths are generated from the **PDG 2025 edition** by `scripts/make-pdg-data.py` into `src/engine/pdgData.ts`;
+  tests check the stated quantum numbers against the quark content of every component.
+- **Validation** (`src/engine/decays.ts`): in addition to the per-vertex rules, each hadron's quark lines must match one
+  component of the hadron (any component of a mixed state is accepted), the lines must point the right way in time for an
+  initial/final hadron, and the parent must be heavier than the sum of its products ("not enough energy for this decay").
+  Strong decays are drawn and validated with the gluon (q → q g, g → q' q̄'); flavor changes only at W vertices.
+- **Classification**: every library decay says `allowed` or `suppressed` *relative to the parent's best available route*,
+  its interaction, a list of suppression reasons (`cabibbo-single`, `cabibbo-double`, `ckm-b-u`, `helicity`, `ozi`,
+  `color`, `loop-gim`, `isospin`), the allowed decay to compare with, the branching ratio and an explanation. Helicity and
+  G-parity suppression are invisible in the diagram, so the explanation carries them. Tests check that every decay is fully
+  valid, that suppressed decays have a reason and an allowed comparison, and that an `ozi` tag agrees with the diagram
+  (the quark lines of the initial hadron do not reach the final hadrons once the gluons are removed).
+- **Hidden hadrons**: a puzzle may hide a whole hadron. Any hadron of the table that fits the quark lines at the
+  neighbouring vertices and passes the energy check is accepted; the generator only hides a hadron when exactly one table
+  hadron fits (π⁺ and ρ⁺ have the same quark content, so the energy check usually decides).
+
+### Adding a decay
+Add an object to a `src/puzzle/library/*.json` file (see `decays-allowed.json` for many examples). On top of the format below
+it has `hadrons`, optional `spectators` and a `decay` block:
+
+```json
+{
+  "id": "dec-d0-kpi",
+  "name": "D⁰ → K⁻ π⁺",
+  "difficulty": 4,
+  "explanation": "Two or three sentences.",
+  "vertices": { "v1": [1, -0.4], "v2": [2, -1.0] },
+  "externals": { "a": [0, -0.25], "b": [0, 0.25], "w1": [3, -1.5], "w2": [3, -1.0], "s1": [3, -0.25], "s2": [3, 0.25] },
+  "legs": [
+    ["dq", "in", "a", "v1", "c"], ["new", "out", "s1", "v1", "s"],
+    ["p1", "out", "w1", "v2", "u"], ["p2", "out", "w2", "v2", "dbar"]
+  ],
+  "spectators": [["sp", "b", "s2", "ubar"]],
+  "edges": [["W", "v1", "v2", "W+"]],
+  "hadrons": [
+    ["P", "D0", "in", ["a", "b"]], ["Mw", "pi+", "out", ["w1", "w2"]], ["Ms", "K-", "out", ["s1", "s2"]]
+  ],
+  "decay": {
+    "category": "allowed", "interaction": "weak", "reasons": [],
+    "br": 0.03945, "brText": "(3.945 ± 0.030) %"
+  },
+  "hideSets": [["W"]]
+}
+```
+- `hadrons`: `[groupId, hadronId, "in"|"out", [external nodes]]`. A group owns external nodes, so one quark line can be shared
+  by an incoming and an outgoing hadron (`spectators`: `[id, inExternal, outExternal, physical particle]`).
+- Put the incoming hadron at the smallest `x` and outgoing ones at the largest; keep the nodes of one hadron close together
+  (0.5 apart) in a vertical stack, and lay the diagram out so that quark lines do not cross if possible.
+- `decay`: add `compareWith` (the id of an allowed decay) and at least one reason for a `suppressed` decay. Look up the
+  branching ratio in the PDG and record the edition in the commit message; `brText` is the display string.
+- `hideSets` may contain edge ids and hadron group ids; `npm test` rejects sets that are not fair. Fundamental-particle
+  decays (Z → μ⁺μ⁻, t → bW) are written without hadrons and still get the energy check when they carry a `decay` block.
+- To refresh masses: download `mass_width_<year>.txt` from `https://pdg.lbl.gov/<year>/mcdata/` and run
+  `python scripts/make-pdg-data.py mass_width_<year>.txt > src/engine/pdgData.ts`.
+
 ## Adding a process to the library
 Add an object to any array in `src/puzzle/library/*.json` (or create a new `*.json` file containing an array; files are
 picked up automatically, with nothing to register):
@@ -119,12 +185,17 @@ picked up automatically, with nothing to register):
    process with the dropdown and modify it.
 2. Select a line and choose the particle you would write on it (forward in time). Antiparticles get backward arrows
    automatically. Vertices turn green when valid and red otherwise; the status box explains every problem.
-3. Switch on **Hidden from the player** for the lines to solve (amber in the editor).
+   With the **Hadron** tool you place a hadron from the table: it appears as a stack of quark points. Draw a line from a vertex
+   onto each point (the line gets that quark's particle), or from an incoming hadron to an outgoing one for a spectator quark.
+   Mixed states let you choose which quark component to draw.
+3. Switch on **Hidden from the player** for the lines or hadrons to solve (amber in the editor).
 4. Sharing is blocked until the whole diagram is connected, fully assigned, valid at every vertex, has at least one hidden
    line, and no hidden external leg could be several particles. A very open puzzle (more than 60 valid answers) only gets
    a warning.
 5. **Test play** lets you solve your own puzzle; **Copy share link** gives `https://<site>/#p=<compressed puzzle>`. An
    optional title and message are shown to the player.
+
+Links made with hadrons use share format v2 (hadron groups and which ones are hidden); older v1 links still open.
 
 How links work: the puzzle is stored as compact JSON, compressed with lz-string and placed in the URL hash, so there is no
 server. The JSON contains the creator's complete answer, which the app uses to check progress, so a determined person could
@@ -134,12 +205,12 @@ before display. Progress on a shared puzzle is saved per puzzle and never counts
 
 ## Project layout
 ```
-src/engine/    particles, vertex rules, validator, solver, answer checking (no DOM)
+src/engine/    particles, hadron table, PDG data, vertex rules, validator, decay/kinematics checks, solver (no DOM)
 src/render/    diagram -> scene -> SVG (straight/wavy/curly/dashed lines)
 src/puzzle/    library JSON, loader, generator (daily + practice), seeded RNG
-src/game/      game state, stats/streaks, dates, share text
+src/game/      game state, hidden-hadron answers, allowed-or-suppressed logic, stats/streaks, dates, share text
 src/editor/    editor model, checks, share codec
-src/ui/        game view, palette, practice, editor, dialogs, theme
+src/ui/        game view, palettes, practice, forbidden-vertex and classify views, editor, dialogs, theme
 tests/         Vitest suites
 ```
 
@@ -147,7 +218,7 @@ tests/         Vitest suites
 `src/puzzle/forbidden.ts` takes a library diagram and swaps the label of one *external* leg (preferring the same line
 style so the shape gives nothing away), keeping only swaps that leave exactly one invalid vertex. The player taps that
 vertex (3 attempts; a wrong tap turns that vertex green, and a coarse hint appears after two misses). It is available in
-Practice only; the daily puzzle is unchanged.
+Practice only; the daily puzzle is unchanged. Decays drawn with hadrons are skipped (a swapped quark leg would also break its hadron).
 
 ## Not yet implemented
 - Offline support (service worker). The app already ships a web manifest, so it can be added to a home screen.

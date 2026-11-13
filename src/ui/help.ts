@@ -25,6 +25,11 @@ const HELP_HTML = `
     <li><b>Curly</b>: gluon g</li>
     <li><b>Dashed</b>: Higgs boson H</li>
   </ul>
+  <h3>Decays and hadrons</h3>
+  <p>Some puzzles are particle decays drawn at the quark level: a hadron (π, K, D, B, p, Λ, ...) is shown as its quark
+  lines inside a rounded outline. A hidden hadron shows <b>?</b>: tap its outline and pick the hadron. The quarks must
+  match, every vertex must be valid, and the parent must be heavier than its decay products. In <b>Practice</b> you can
+  also be asked whether a decay is <b>allowed</b> or <b>suppressed</b>, and why.</p>
   <h3>After a wrong guess</h3>
   <p>Numbered vertices turn red or green and tell you which law is broken. Lines turn green, amber or red depending on
   how many of their end vertices are valid. Your share card uses the same colors and never shows the answer.</p>
