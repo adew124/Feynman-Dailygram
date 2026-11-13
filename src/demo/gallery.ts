@@ -1,49 +1,35 @@
 import { validateDiagram } from '../engine/validator';
-import { onEdgeTap, renderDiagram } from '../render/svg';
-import { EXAMPLES } from './examples';
+import { LIBRARY } from '../puzzle/library';
+import { renderDiagram } from '../render/svg';
 
-/** Renderer gallery (kept at #/demo): shows each example with hidden edges. */
+/** Library browser (#/library): every process with its solution, filterable by difficulty. */
 export function mountGallery(app: HTMLElement): void {
   app.innerHTML = `
-    <h1>Renderer demo</h1>
-    <p class="sub">Straight+arrow = fermion, wavy = γ/W/Z, curly = gluon, dashed = Higgs.
-    Tap a dotted (hidden) edge to select it. <a href="#/">Back to the puzzle</a></p>
-    <label class="sub"><input type="checkbox" id="reveal"> reveal line styles on hidden edges</label>
-    <label class="sub"><input type="checkbox" id="solved"> show solution</label>
+    <h1>Process library <span class="sub">(${LIBRARY.length})</span></h1>
+    <p class="sub">All curated processes with their full diagrams. Straight + arrow = fermion, wavy = γ/Z/W,
+    curly = gluon, dashed = Higgs. Time flows left → right.</p>
+    <div class="toolbar">
+      <label class="sub" for="lvl">Difficulty</label>
+      <select id="lvl"><option value="0">All</option>${[1, 2, 3, 4, 5, 6, 7].map((d) => `<option value="${d}">${d}</option>`).join('')}</select>
+    </div>
     <div id="gallery"></div>`;
-  const selected: Record<string, string | null> = {};
   const gallery = document.getElementById('gallery')!;
-  const reveal = document.getElementById('reveal') as HTMLInputElement;
-  const solved = document.getElementById('solved') as HTMLInputElement;
+  const lvl = document.getElementById('lvl') as HTMLSelectElement;
 
   function draw() {
-    gallery.innerHTML = '';
-    for (const ex of EXAMPLES) {
-      const card = document.createElement('div');
-      card.className = 'card';
-      const ok = validateDiagram(ex.diagram).valid;
-      const answers = solved.checked
-        ? Object.fromEntries(ex.hidden.map((id) => [id, ex.diagram.edges.find((e) => e.id === id)!.particle]))
-        : {};
-      card.innerHTML =
-        `<h2>${ex.title} <span class="sub">${ok ? '(valid)' : '(INVALID!)'}</span></h2>` +
-        renderDiagram(ex.diagram, {
-          hidden: ex.hidden,
-          answers,
-          selected: selected[ex.id] ?? null,
-          revealKinds: reveal.checked,
-          ariaLabel: ex.title,
-        });
-      onEdgeTap(card, (edgeId) => {
-        if (ex.hidden.includes(edgeId)) {
-          selected[ex.id] = edgeId;
-          draw();
-        }
-      });
-      gallery.appendChild(card);
-    }
+    const level = Number(lvl.value);
+    gallery.innerHTML = LIBRARY.filter((e) => !level || e.difficulty === level)
+      .map((e) => {
+        const ok = validateDiagram(e.diagram).valid;
+        return `<div class="card" id="p-${e.id}">
+          <h2>${e.name} <span class="pill">level ${e.difficulty}</span>${ok ? '' : ' <b style="color:var(--bad)">INVALID</b>'}</h2>
+          ${renderDiagram(e.diagram, { revealKinds: true, ariaLabel: e.name })}
+          <p class="sub">${e.explanation}</p>
+          <p class="sub"><code>${e.id}</code></p>
+        </div>`;
+      })
+      .join('');
   }
-  reveal.addEventListener('change', draw);
-  solved.addEventListener('change', draw);
+  lvl.addEventListener('change', draw);
   draw();
 }

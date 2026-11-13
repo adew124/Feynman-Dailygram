@@ -1,0 +1,318 @@
+[
+  {
+    "id": "z-mumu",
+    "name": "Z → μ⁺μ⁻",
+    "difficulty": 1,
+    "explanation": "A Z boson decays into a muon and its antimuon. The Z couples to a fermion and its own antiparticle, so the two decay products always have opposite charge.",
+    "vertices": { "v1": [1, 0] },
+    "externals": { "a": [0, 0], "c": [2, -1.2], "d": [2, 1.2] },
+    "legs": [
+      ["z_in", "in", "a", "v1", "Z"],
+      ["mu_out", "out", "c", "v1", "mu-"],
+      ["amu_out", "out", "d", "v1", "mu+"]
+    ],
+    "edges": [],
+    "hideSets": [["amu_out"], ["mu_out"]]
+  },
+  {
+    "id": "z-bbbar",
+    "name": "Z → b b̄",
+    "difficulty": 1,
+    "explanation": "A Z boson decays into a bottom quark and antiquark, a decay the Z shares with every other fermion type. Measuring the Z width at LEP showed there are exactly three light neutrino species.",
+    "vertices": { "v1": [1, 0] },
+    "externals": { "a": [0, 0], "c": [2, -1.2], "d": [2, 1.2] },
+    "legs": [
+      ["z_in", "in", "a", "v1", "Z"],
+      ["b_out", "out", "c", "v1", "b"],
+      ["bbar_out", "out", "d", "v1", "bbar"]
+    ],
+    "edges": [],
+    "hideSets": [["bbar_out"], ["b_out"]]
+  },
+  {
+    "id": "beta-minus",
+    "name": "β⁻ decay (quark level)",
+    "difficulty": 2,
+    "explanation": "A down quark turns into an up quark by emitting a virtual W⁻, which becomes an electron and an electron antineutrino. Charge and electron lepton number are conserved at each vertex.",
+    "vertices": { "v1": [1, 0], "v2": [2, 1] },
+    "externals": { "din": [0, -1], "uout": [3, -1], "eout": [3, 1], "nuout": [3, 2] },
+    "legs": [
+      ["d", "in", "din", "v1", "d"],
+      ["u", "out", "uout", "v1", "u"],
+      ["e", "out", "eout", "v2", "e-"],
+      ["nubar", "out", "nuout", "v2", "anti_nu_e"]
+    ],
+    "edges": [["W", "v1", "v2", "W-"]],
+    "hideSets": [["W"], ["nubar"], ["W", "nubar"]]
+  },
+  {
+    "id": "beta-plus",
+    "name": "β⁺ decay (quark level)",
+    "difficulty": 2,
+    "explanation": "An up quark turns into a down quark by emitting a virtual W⁺, which becomes a positron and an electron neutrino. It happens in proton-rich nuclei, where converting a proton to a neutron lowers the energy.",
+    "vertices": { "v1": [1, 0], "v2": [2, 1] },
+    "externals": { "uin": [0, -1], "dout": [3, -1], "eout": [3, 1], "nuout": [3, 2] },
+    "legs": [
+      ["u", "in", "uin", "v1", "u"],
+      ["d", "out", "dout", "v1", "d"],
+      ["e", "out", "eout", "v2", "e+"],
+      ["nu", "out", "nuout", "v2", "nu_e"]
+    ],
+    "edges": [["W", "v1", "v2", "W+"]],
+    "hideSets": [["W"], ["nu"], ["e"]]
+  },
+  {
+    "id": "mu-decay",
+    "name": "Muon decay μ⁻ → e⁻ ν̄ₑ ν_μ",
+    "difficulty": 2,
+    "explanation": "A muon turns into a muon neutrino by emitting a virtual W⁻, which becomes an electron and an electron antineutrino. Muon and electron lepton numbers are each conserved, which is why a neutrino and an antineutrino of different families appear.",
+    "vertices": { "v1": [1, 0], "v2": [2, 1] },
+    "externals": { "a": [0, 0], "c": [3, -1], "d": [3, 1], "e": [3, 2] },
+    "legs": [
+      ["mu_in", "in", "a", "v1", "mu-"],
+      ["numu", "out", "c", "v1", "nu_mu"],
+      ["e_out", "out", "d", "v2", "e-"],
+      ["nuebar", "out", "e", "v2", "anti_nu_e"]
+    ],
+    "edges": [["W", "v1", "v2", "W-"]],
+    "hideSets": [["W"], ["nuebar"], ["numu"]]
+  },
+  {
+    "id": "t-bw",
+    "name": "t → b W⁺",
+    "difficulty": 2,
+    "explanation": "The top quark decays almost always into a bottom quark and a real W⁺ boson, because the other CKM couplings are tiny. It decays so fast that it never forms hadrons.",
+    "vertices": { "v1": [1, 0] },
+    "externals": { "a": [0, 0], "c": [2, -1.2], "d": [2, 1.2] },
+    "legs": [
+      ["t_in", "in", "a", "v1", "t"],
+      ["b_out", "out", "c", "v1", "b"],
+      ["w_out", "out", "d", "v1", "W+"]
+    ],
+    "edges": [],
+    "hideSets": [["w_out"]]
+  },
+  {
+    "id": "w-munu",
+    "name": "W⁻ → μ⁻ ν̄_μ",
+    "difficulty": 2,
+    "explanation": "A W⁻ boson decays into a muon and a muon antineutrino. The W couples charged leptons only to their own neutrino family, so the neutrino must be the muon type.",
+    "vertices": { "v1": [1, 0] },
+    "externals": { "a": [0, 0], "c": [2, -1.2], "d": [2, 1.2] },
+    "legs": [
+      ["w_in", "in", "a", "v1", "W-"],
+      ["mu_out", "out", "c", "v1", "mu-"],
+      ["nubar_out", "out", "d", "v1", "anti_nu_mu"]
+    ],
+    "edges": [],
+    "hideSets": [["nubar_out"], ["mu_out"]]
+  },
+  {
+    "id": "enu-munu",
+    "name": "e⁻ ν̄ₑ → W⁻ → μ⁻ ν̄_μ",
+    "difficulty": 2,
+    "explanation": "An electron and an electron antineutrino fuse into a virtual W⁻, which decays into a muon and a muon antineutrino. Each lepton family number is conserved separately through the W.",
+    "vertices": { "v1": [1, 0], "v2": [2, 0] },
+    "externals": { "a": [0, -1.2], "b": [0, 1.2], "c": [3, -1.2], "d": [3, 1.2] },
+    "legs": [
+      ["e_in", "in", "a", "v1", "e-"],
+      ["nuebar_in", "in", "b", "v1", "anti_nu_e"],
+      ["mu_out", "out", "c", "v2", "mu-"],
+      ["numubar_out", "out", "d", "v2", "anti_nu_mu"]
+    ],
+    "edges": [["W", "v1", "v2", "W-"]],
+    "hideSets": [["W"], ["numubar_out"], ["W", "numubar_out"]]
+  },
+  {
+    "id": "tau-hadrons",
+    "name": "τ⁻ → ν_τ d ū (hadronic decay)",
+    "difficulty": 3,
+    "explanation": "A tau turns into a tau neutrino by emitting a virtual W⁻, which becomes a down quark and an up antiquark. The quarks bind into hadrons such as a π⁻.",
+    "vertices": { "v1": [1, 0], "v2": [2, 1] },
+    "externals": { "a": [0, 0], "c": [3, -1], "d": [3, 1], "e": [3, 2] },
+    "legs": [
+      ["tau_in", "in", "a", "v1", "tau-"],
+      ["nutau", "out", "c", "v1", "nu_tau"],
+      ["d_out", "out", "d", "v2", "d"],
+      ["ubar_out", "out", "e", "v2", "ubar"]
+    ],
+    "edges": [["W", "v1", "v2", "W-"]],
+    "hideSets": [["W"], ["ubar_out"], ["W", "ubar_out"]]
+  },
+  {
+    "id": "electron-capture",
+    "name": "Electron capture e⁻ u → ν_e d",
+    "difficulty": 3,
+    "explanation": "An atomic electron is absorbed by an up quark in the nucleus, which turns into a down quark while a neutrino escapes. A proton becomes a neutron without emitting a positron.",
+    "vertices": { "v1": [1, -0.8], "v2": [1, 0.8] },
+    "externals": { "a": [0, -1.5], "b": [0, 1.5], "c": [3, -1.5], "d": [3, 1.5] },
+    "legs": [
+      ["e_in", "in", "a", "v1", "e-"],
+      ["u_in", "in", "b", "v2", "u"],
+      ["nu_out", "out", "c", "v1", "nu_e"],
+      ["d_out", "out", "d", "v2", "d"]
+    ],
+    "edges": [["W", "v1", "v2", "W-"]],
+    "hideSets": [["W"], ["nu_out"], ["W", "d_out"]]
+  },
+  {
+    "id": "nu-e-cc",
+    "name": "ν_μ e⁻ → μ⁻ ν_e (charged current)",
+    "difficulty": 3,
+    "explanation": "A muon neutrino hits an electron and exchanges a W⁺, turning into a muon while the electron turns into an electron neutrino. The lepton families swap partners but each family number is conserved.",
+    "vertices": { "v1": [1.5, -0.8], "v2": [1.5, 0.8] },
+    "externals": { "a": [0, -1.5], "b": [0, 1.5], "c": [3, -1.5], "d": [3, 1.5] },
+    "legs": [
+      ["nu_in", "in", "a", "v1", "nu_mu"],
+      ["mu_out", "out", "c", "v1", "mu-"],
+      ["e_in", "in", "b", "v2", "e-"],
+      ["nue_out", "out", "d", "v2", "nu_e"]
+    ],
+    "edges": [["W", "v1", "v2", "W+"]],
+    "hideSets": [["W"], ["nue_out"], ["W", "nue_out"]]
+  },
+  {
+    "id": "nu-e-nc",
+    "name": "ν_μ e⁻ → ν_μ e⁻ (neutral current)",
+    "difficulty": 3,
+    "explanation": "A muon neutrino scatters elastically off an electron by exchanging a Z boson. Its discovery in 1973 confirmed the weak neutral current predicted by electroweak theory.",
+    "vertices": { "v1": [1.5, -0.8], "v2": [1.5, 0.8] },
+    "externals": { "a": [0, -1.5], "b": [0, 1.5], "c": [3, -1.5], "d": [3, 1.5] },
+    "legs": [
+      ["nu_in", "in", "a", "v1", "nu_mu"],
+      ["nu_out", "out", "c", "v1", "nu_mu"],
+      ["e_in", "in", "b", "v2", "e-"],
+      ["e_out", "out", "d", "v2", "e-"]
+    ],
+    "edges": [["Z", "v1", "v2", "Z"]],
+    "hideSets": [["Z"], ["e_out"], ["Z", "e_out"]]
+  },
+  {
+    "id": "ee-znunu",
+    "name": "e⁺e⁻ → Z → ν ν̄",
+    "difficulty": 3,
+    "explanation": "An electron and positron annihilate into a Z boson that decays into a neutrino pair. Photons do not couple to neutrinos, so only the Z can mediate this process.",
+    "vertices": { "v1": [1, 0], "v2": [2, 0] },
+    "externals": { "a": [0, -1.2], "b": [0, 1.2], "c": [3, -1.2], "d": [3, 1.2] },
+    "legs": [
+      ["e_in", "in", "a", "v1", "e-"],
+      ["p_in", "in", "b", "v1", "e+"],
+      ["nu_out", "out", "c", "v2", "nu_mu"],
+      ["nubar_out", "out", "d", "v2", "anti_nu_mu"]
+    ],
+    "edges": [["prop", "v1", "v2", "Z"]],
+    "hideSets": [["prop"], ["nubar_out"], ["prop", "nubar_out"]]
+  },
+  {
+    "id": "pi-mu-nu",
+    "name": "π⁺ → μ⁺ ν_μ",
+    "difficulty": 3,
+    "explanation": "The up quark and down antiquark in a π⁺ annihilate into a virtual W⁺, which decays into a muon and a muon neutrino. The decay to a muon is favored over an electron by helicity suppression.",
+    "vertices": { "v1": [1, 0], "v2": [2, 0.5] },
+    "externals": { "a": [0, -1], "b": [0, 1], "c": [3, -0.3], "d": [3, 1.3] },
+    "legs": [
+      ["u_in", "in", "a", "v1", "u"],
+      ["dbar_in", "in", "b", "v1", "dbar"],
+      ["mu_out", "out", "c", "v2", "mu+"],
+      ["nu_out", "out", "d", "v2", "nu_mu"]
+    ],
+    "edges": [["W", "v1", "v2", "W+"]],
+    "hideSets": [["W"], ["nu_out"], ["mu_out"]]
+  },
+  {
+    "id": "k-mu-nu",
+    "name": "K⁺ → μ⁺ ν_μ",
+    "difficulty": 4,
+    "explanation": "The up quark and strange antiquark in a K⁺ annihilate into a virtual W⁺ that decays to a muon and a neutrino. The u–s coupling is suppressed by the CKM matrix element V_us, which is about 0.22.",
+    "vertices": { "v1": [1, 0], "v2": [2, 0.5] },
+    "externals": { "a": [0, -1], "b": [0, 1], "c": [3, -0.3], "d": [3, 1.3] },
+    "legs": [
+      ["u_in", "in", "a", "v1", "u"],
+      ["sbar_in", "in", "b", "v1", "sbar"],
+      ["mu_out", "out", "c", "v2", "mu+"],
+      ["nu_out", "out", "d", "v2", "nu_mu"]
+    ],
+    "edges": [["W", "v1", "v2", "W+"]],
+    "hideSets": [["W"], ["nu_out"], ["mu_out"]]
+  },
+  {
+    "id": "lambda-decay",
+    "name": "Λ → p π⁻ (s → u d ū)",
+    "difficulty": 4,
+    "explanation": "A strange quark in a Λ baryon turns into an up quark by emitting a virtual W⁻, which becomes a down quark and an up antiquark. The weak force changes strangeness by one unit, which is why Λ lives far longer than strong decays would allow.",
+    "vertices": { "v1": [1, 0], "v2": [2, 1] },
+    "externals": { "a": [0, 0], "c": [3, -1], "d": [3, 1], "e": [3, 2] },
+    "legs": [
+      ["s_in", "in", "a", "v1", "s"],
+      ["u_out", "out", "c", "v1", "u"],
+      ["d_out", "out", "d", "v2", "d"],
+      ["ubar_out", "out", "e", "v2", "ubar"]
+    ],
+    "edges": [["W", "v1", "v2", "W-"]],
+    "hideSets": [["W"], ["ubar_out"], ["W", "ubar_out"]]
+  },
+  {
+    "id": "d0-kpi",
+    "name": "D⁰ → K⁻ π⁺ (c → s u d̄)",
+    "difficulty": 4,
+    "explanation": "A charm quark turns into a strange quark by emitting a virtual W⁺, which becomes an up quark and a down antiquark. The c → s transition is Cabibbo-favored, so this is a dominant D⁰ decay.",
+    "vertices": { "v1": [1, 0], "v2": [2, 1] },
+    "externals": { "a": [0, 0], "c": [3, -1], "d": [3, 1], "e": [3, 2] },
+    "legs": [
+      ["c_in", "in", "a", "v1", "c"],
+      ["s_out", "out", "c", "v1", "s"],
+      ["u_out", "out", "d", "v2", "u"],
+      ["dbar_out", "out", "e", "v2", "dbar"]
+    ],
+    "edges": [["W", "v1", "v2", "W+"]],
+    "hideSets": [["W"], ["dbar_out"], ["W", "dbar_out"]]
+  },
+  {
+    "id": "ee-ww",
+    "name": "e⁺e⁻ → W⁺W⁻ (neutrino exchange)",
+    "difficulty": 4,
+    "explanation": "An electron and positron produce a W pair by exchanging a virtual electron neutrino. Without the extra Z and photon diagrams, this cross-section would grow with energy and violate unitarity.",
+    "vertices": { "v1": [1, -0.8], "v2": [1, 0.8] },
+    "externals": { "a": [0, -1.5], "b": [0, 1.5], "c": [3, -1.5], "d": [3, 1.5] },
+    "legs": [
+      ["e_in", "in", "a", "v1", "e-"],
+      ["p_in", "in", "b", "v2", "e+"],
+      ["wm_out", "out", "c", "v1", "W-"],
+      ["wp_out", "out", "d", "v2", "W+"]
+    ],
+    "edges": [["nu", "v1", "v2", "nu_e"]],
+    "hideSets": [["nu"], ["wp_out"], ["nu", "wp_out"]]
+  },
+  {
+    "id": "aa-ww",
+    "name": "γγ → W⁺W⁻ (W exchange)",
+    "difficulty": 5,
+    "explanation": "Two photons produce a W pair by exchanging a virtual W, because W bosons carry electric charge and couple to photons. A neutral photon pair becomes two charged particles of opposite sign.",
+    "vertices": { "v1": [1.5, -0.8], "v2": [1.5, 0.8] },
+    "externals": { "a": [0, -1.5], "b": [0, 1.5], "c": [3, -1.5], "d": [3, 1.5] },
+    "legs": [
+      ["g1_in", "in", "a", "v1", "gamma"],
+      ["g2_in", "in", "b", "v2", "gamma"],
+      ["wp_out", "out", "c", "v1", "W+"],
+      ["wm_out", "out", "d", "v2", "W-"]
+    ],
+    "edges": [["W", "v1", "v2", "W-"]],
+    "hideSets": [["W"], ["wm_out"], ["W", "wm_out"]]
+  },
+  {
+    "id": "aa-ww-contact",
+    "name": "γγ → W⁺W⁻ (contact vertex)",
+    "difficulty": 5,
+    "explanation": "Two photons produce a W pair at a single four-point vertex. Gauge boson contact interactions like this one are required by the structure of the electroweak theory.",
+    "vertices": { "v1": [1.5, 0] },
+    "externals": { "a": [0, -1.2], "b": [0, 1.2], "c": [3, -1.2], "d": [3, 1.2] },
+    "legs": [
+      ["g1_in", "in", "a", "v1", "gamma"],
+      ["g2_in", "in", "b", "v1", "gamma"],
+      ["wp_out", "out", "c", "v1", "W+"],
+      ["wm_out", "out", "d", "v1", "W-"]
+    ],
+    "edges": [],
+    "hideSets": [["wm_out"], ["wp_out"]]
+  }
+]

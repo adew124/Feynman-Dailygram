@@ -1,0 +1,103 @@
+[
+  {
+    "id": "penguin-bs-gamma",
+    "name": "Penguin decay b → s γ",
+    "difficulty": 6,
+    "explanation": "A bottom quark changes to a strange quark through a loop containing a W boson and a top quark, with a photon radiated from the loop. Flavor-changing neutral currents are forbidden at tree level, so they proceed only through such loops.",
+    "vertices": { "v1": [1, 0], "v2": [2, -0.9], "v3": [3, 0] },
+    "externals": { "bx": [0, 0], "sx": [4, 0], "px": [2, -2.2] },
+    "legs": [
+      ["b_in", "in", "bx", "v1", "b"],
+      ["s_out", "out", "sx", "v3", "s"],
+      ["ph", "out", "px", "v2", "gamma"]
+    ],
+    "edges": [
+      ["t1", "v1", "v2", "t"],
+      ["t2", "v2", "v3", "t"],
+      ["W", "v1", "v3", "W-", 0.55]
+    ],
+    "hideSets": [["W"], ["t1", "t2"], ["t2", "W"]]
+  },
+  {
+    "id": "penguin-bs-gluon",
+    "name": "Gluonic penguin b → s g",
+    "difficulty": 6,
+    "explanation": "The same W–top loop as in b → s γ, but now a gluon is radiated from the internal top quark. Gluonic penguins are an important contribution to many B-meson decays.",
+    "vertices": { "v1": [1, 0], "v2": [2, -0.9], "v3": [3, 0] },
+    "externals": { "bx": [0, 0], "sx": [4, 0], "gx": [2, -2.2] },
+    "legs": [
+      ["b_in", "in", "bx", "v1", "b"],
+      ["s_out", "out", "sx", "v3", "s"],
+      ["gl", "out", "gx", "v2", "g"]
+    ],
+    "edges": [
+      ["t1", "v1", "v2", "t"],
+      ["t2", "v2", "v3", "t"],
+      ["W", "v1", "v3", "W-", 0.55]
+    ],
+    "hideSets": [["W"], ["t1", "t2"], ["t2", "W"]]
+  },
+  {
+    "id": "penguin-bs-ll",
+    "name": "Penguin decay b → s μ⁺μ⁻",
+    "difficulty": 7,
+    "explanation": "A b → s loop emits a virtual photon or Z that decays into a muon pair. This rare decay is a sensitive probe for new particles that could appear in the loop alongside the W and top quark.",
+    "vertices": { "v1": [1, 0], "v2": [2, -0.9], "v3": [3, 0], "v4": [2.8, -2] },
+    "externals": { "bx": [0, 0], "sx": [4.2, 0], "c": [4.2, -1.4], "d": [4.2, -2.6] },
+    "legs": [
+      ["b_in", "in", "bx", "v1", "b"],
+      ["s_out", "out", "sx", "v3", "s"],
+      ["mu_out", "out", "c", "v4", "mu-"],
+      ["amu_out", "out", "d", "v4", "mu+"]
+    ],
+    "edges": [
+      ["t1", "v1", "v2", "t"],
+      ["t2", "v2", "v3", "t"],
+      ["W", "v1", "v3", "W-", 0.55],
+      ["gam", "v2", "v4", "gamma"]
+    ],
+    "hideSets": [["gam"], ["t1", "t2"], ["W", "gam"]]
+  },
+  {
+    "id": "b0-mixing",
+    "name": "B⁰–B̄⁰ box diagram",
+    "difficulty": 6,
+    "explanation": "Two W bosons and two up-type quarks in a box let a B⁰ (d b̄) turn into its antiparticle B̄⁰ (b d̄). The heavy top quark dominates the loop, so the mixing rate is large and measures V_td.",
+    "vertices": { "v1": [1, 0], "v2": [3, 0], "v3": [1, 2], "v4": [3, 2] },
+    "externals": { "dx": [0, 0], "bx": [4, 0], "bbx": [0, 2], "dbx": [4, 2] },
+    "legs": [
+      ["d_in", "in", "dx", "v1", "d"],
+      ["b_out", "out", "bx", "v2", "b"],
+      ["bbar_in", "in", "bbx", "v3", "bbar"],
+      ["dbar_out", "out", "dbx", "v4", "dbar"]
+    ],
+    "edges": [
+      ["up1", "v1", "v2", "t"],
+      ["W_l", "v1", "v3", "W-"],
+      ["W_r", "v4", "v2", "W-"],
+      ["up2", "v4", "v3", "t"]
+    ],
+    "hideSets": [["up1", "W_r"], ["up1", "up2"], ["W_l", "up2"]]
+  },
+  {
+    "id": "kaon-box",
+    "name": "K⁰–K̄⁰ box diagram",
+    "difficulty": 7,
+    "explanation": "Two W bosons and two up-type quarks in a box let a K⁰ (d s̄) turn into its antiparticle K̄⁰ (s d̄), changing strangeness by two units. The size of this mixing predicted the charm quark mass before charm was discovered.",
+    "vertices": { "v1": [1, 0], "v2": [3, 0], "v3": [1, 2], "v4": [3, 2] },
+    "externals": { "dx": [0, 0], "sx": [4, 0], "sbx": [0, 2], "dbx": [4, 2] },
+    "legs": [
+      ["d_in", "in", "dx", "v1", "d"],
+      ["s_out", "out", "sx", "v2", "s"],
+      ["sbar_in", "in", "sbx", "v3", "sbar"],
+      ["dbar_out", "out", "dbx", "v4", "dbar"]
+    ],
+    "edges": [
+      ["up1", "v1", "v2", "t"],
+      ["W_l", "v1", "v3", "W-"],
+      ["W_r", "v4", "v2", "W-"],
+      ["up2", "v4", "v3", "t"]
+    ],
+    "hideSets": [["up1", "W_r"], ["up1", "W_r", "dbar_out"], ["W_l", "up2"]]
+  }
+]

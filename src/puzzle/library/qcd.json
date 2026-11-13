@@ -1,0 +1,170 @@
+[
+  {
+    "id": "ee-uubar",
+    "name": "e⁺e⁻ → u ū",
+    "difficulty": 1,
+    "explanation": "Electron–positron annihilation into a virtual photon that produces a quark–antiquark pair. The ratio of hadron to muon production in such events measures the number of quark colors.",
+    "vertices": { "v1": [1, 0], "v2": [2, 0] },
+    "externals": { "a": [0, -1.2], "b": [0, 1.2], "c": [3, -1.2], "d": [3, 1.2] },
+    "legs": [
+      ["e_in", "in", "a", "v1", "e-"],
+      ["p_in", "in", "b", "v1", "e+"],
+      ["q_out", "out", "c", "v2", "u"],
+      ["qbar_out", "out", "d", "v2", "ubar"]
+    ],
+    "edges": [["prop", "v1", "v2", "gamma"]],
+    "hideSets": [["prop"], ["qbar_out"], ["prop", "qbar_out"]]
+  },
+  {
+    "id": "uu-uu",
+    "name": "u u → u u (gluon exchange)",
+    "difficulty": 2,
+    "explanation": "Two up quarks scatter by exchanging a virtual gluon, the strong-force analogue of Møller scattering. Each quark keeps its flavor because the gluon couples a quark only to itself.",
+    "vertices": { "v1": [1.5, -0.8], "v2": [1.5, 0.8] },
+    "externals": { "a": [0, -1.5], "b": [0, 1.5], "c": [3, -1.5], "d": [3, 1.5] },
+    "legs": [
+      ["u1_in", "in", "a", "v1", "u"],
+      ["u1_out", "out", "c", "v1", "u"],
+      ["u2_in", "in", "b", "v2", "u"],
+      ["u2_out", "out", "d", "v2", "u"]
+    ],
+    "edges": [["gluon", "v1", "v2", "g"]],
+    "hideSets": [["gluon"], ["u2_out"], ["gluon", "u2_out"]]
+  },
+  {
+    "id": "ee-qqg",
+    "name": "e⁺e⁻ → q q̄ g",
+    "difficulty": 3,
+    "explanation": "Annihilation produces a quark–antiquark pair, and one of the quarks radiates a gluon. Three-jet events like this gave the first direct evidence for the gluon.",
+    "vertices": { "v1": [1, 0], "v2": [2.2, 0], "v3": [3.2, -0.8] },
+    "externals": { "a": [0, -1], "b": [0, 1], "q": [4.5, -1.6], "gl": [4.5, -0.1], "qb": [4.5, 1.6] },
+    "legs": [
+      ["e_in", "in", "a", "v1", "e-"],
+      ["p_in", "in", "b", "v1", "e+"],
+      ["q_out", "out", "q", "v3", "u"],
+      ["glu", "out", "gl", "v3", "g"],
+      ["qbar_out", "out", "qb", "v2", "ubar"]
+    ],
+    "edges": [
+      ["gam", "v1", "v2", "gamma"],
+      ["q1", "v2", "v3", "u"]
+    ],
+    "hideSets": [["q1"], ["gam"], ["gam", "q1"]]
+  },
+  {
+    "id": "drell-yan",
+    "name": "Drell–Yan: u ū → μ⁺μ⁻",
+    "difficulty": 3,
+    "explanation": "A quark from one proton and an antiquark from the other annihilate into a virtual photon, which becomes a muon pair. The clean muon signature makes this a classic probe of proton structure.",
+    "vertices": { "v1": [1, 0], "v2": [2, 0] },
+    "externals": { "a": [0, -1.2], "b": [0, 1.2], "c": [3, -1.2], "d": [3, 1.2] },
+    "legs": [
+      ["q_in", "in", "a", "v1", "u"],
+      ["qbar_in", "in", "b", "v1", "ubar"],
+      ["mu_out", "out", "c", "v2", "mu-"],
+      ["amu_out", "out", "d", "v2", "mu+"]
+    ],
+    "edges": [["prop", "v1", "v2", "gamma"]],
+    "hideSets": [["prop"], ["amu_out"], ["prop", "amu_out"]]
+  },
+  {
+    "id": "jpsi-ee",
+    "name": "J/ψ → e⁺e⁻ (c c̄ annihilation)",
+    "difficulty": 3,
+    "explanation": "The charm–anticharm pair inside a J/ψ annihilates into a virtual photon that becomes an electron–positron pair. This clean leptonic decay made the J/ψ easy to discover in 1974.",
+    "vertices": { "v1": [1, 0], "v2": [2, 0] },
+    "externals": { "a": [0, -1.2], "b": [0, 1.2], "c": [3, -1.2], "d": [3, 1.2] },
+    "legs": [
+      ["c_in", "in", "a", "v1", "c"],
+      ["cbar_in", "in", "b", "v1", "cbar"],
+      ["e_out", "out", "c", "v2", "e-"],
+      ["p_out", "out", "d", "v2", "e+"]
+    ],
+    "edges": [["prop", "v1", "v2", "gamma"]],
+    "hideSets": [["prop"], ["p_out"], ["prop", "p_out"]]
+  },
+  {
+    "id": "gg-gg",
+    "name": "g g → g g (four-gluon vertex)",
+    "difficulty": 3,
+    "explanation": "Gluons carry color charge themselves, so they interact directly with each other, including through a four-gluon contact vertex. This self-interaction has no QED analogue and underlies confinement.",
+    "vertices": { "v1": [1.5, 0] },
+    "externals": { "a": [0, -1.2], "b": [0, 1.2], "c": [3, -1.2], "d": [3, 1.2] },
+    "legs": [
+      ["g1_in", "in", "a", "v1", "g"],
+      ["g2_in", "in", "b", "v1", "g"],
+      ["g1_out", "out", "c", "v1", "g"],
+      ["g2_out", "out", "d", "v1", "g"]
+    ],
+    "edges": [],
+    "hideSets": [["g2_out"], ["g2_in"], ["g1_out", "g2_in"]]
+  },
+  {
+    "id": "qqbar-gg",
+    "name": "q q̄ → g g",
+    "difficulty": 4,
+    "explanation": "A quark and antiquark annihilate into two gluons, with a virtual quark exchanged between the vertices. It is the strong-force counterpart of e⁺e⁻ → γγ.",
+    "vertices": { "v1": [1, -0.7], "v2": [1, 0.7] },
+    "externals": { "a": [0, -1.4], "b": [0, 1.4], "c": [3, -1.4], "d": [3, 1.4] },
+    "legs": [
+      ["q_in", "in", "a", "v1", "u"],
+      ["qbar_in", "in", "b", "v2", "ubar"],
+      ["g1", "out", "c", "v1", "g"],
+      ["g2", "out", "d", "v2", "g"]
+    ],
+    "edges": [["prop", "v1", "v2", "u"]],
+    "hideSets": [["prop"], ["qbar_in"], ["prop", "qbar_in"]]
+  },
+  {
+    "id": "gg-qqbar",
+    "name": "g g → q q̄ (s-channel gluon)",
+    "difficulty": 4,
+    "explanation": "Two gluons fuse into a virtual gluon through the three-gluon vertex, which then splits into a quark–antiquark pair. Gluon fusion dominates quark production at hadron colliders.",
+    "vertices": { "v1": [1, 0], "v2": [2, 0] },
+    "externals": { "a": [0, -1.2], "b": [0, 1.2], "c": [3, -1.2], "d": [3, 1.2] },
+    "legs": [
+      ["g1_in", "in", "a", "v1", "g"],
+      ["g2_in", "in", "b", "v1", "g"],
+      ["q_out", "out", "c", "v2", "u"],
+      ["qbar_out", "out", "d", "v2", "ubar"]
+    ],
+    "edges": [["prop", "v1", "v2", "g"]],
+    "hideSets": [["prop"], ["qbar_out"], ["prop", "qbar_out"]]
+  },
+  {
+    "id": "upsilon-ggg",
+    "name": "Υ → g g g (b b̄ annihilation)",
+    "difficulty": 5,
+    "explanation": "A bottom–antibottom pair annihilates into three gluons through a chain of virtual bottom quarks. Three gluons are required because color conservation forbids annihilation into just one or two.",
+    "vertices": { "v1": [1, -0.9], "v2": [1.7, 0], "v3": [1, 0.9] },
+    "externals": { "a": [0, -1.3], "b": [0, 1.3], "c": [3, -1.5], "d": [3, 0], "e": [3, 1.5] },
+    "legs": [
+      ["b_in", "in", "a", "v1", "b"],
+      ["bbar_in", "in", "b", "v3", "bbar"],
+      ["g1", "out", "c", "v1", "g"],
+      ["g2", "out", "d", "v2", "g"],
+      ["g3", "out", "e", "v3", "g"]
+    ],
+    "edges": [
+      ["b1", "v1", "v2", "b"],
+      ["b2", "v2", "v3", "b"]
+    ],
+    "hideSets": [["b1"], ["b2"], ["b1", "b2"]]
+  },
+  {
+    "id": "gg-ttbar",
+    "name": "g g → t t̄",
+    "difficulty": 5,
+    "explanation": "Two gluons from colliding protons fuse into a virtual gluon that splits into a top–antitop pair. This is the main way top quarks are produced at the LHC.",
+    "vertices": { "v1": [1, 0], "v2": [2, 0] },
+    "externals": { "a": [0, -1.2], "b": [0, 1.2], "c": [3, -1.2], "d": [3, 1.2] },
+    "legs": [
+      ["g1_in", "in", "a", "v1", "g"],
+      ["g2_in", "in", "b", "v1", "g"],
+      ["t_out", "out", "c", "v2", "t"],
+      ["tbar_out", "out", "d", "v2", "tbar"]
+    ],
+    "edges": [["prop", "v1", "v2", "g"]],
+    "hideSets": [["prop"], ["tbar_out"], ["prop", "tbar_out"]]
+  }
+]

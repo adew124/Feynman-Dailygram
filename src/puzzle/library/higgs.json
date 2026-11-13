@@ -1,0 +1,106 @@
+[
+  {
+    "id": "h-bbbar",
+    "name": "H → b b̄",
+    "difficulty": 2,
+    "explanation": "The Higgs boson decays most often into a bottom quark and antiquark, since it couples in proportion to mass and the b is the heaviest quark it can decay into. The pair has net zero charge, matching the neutral Higgs.",
+    "vertices": { "v1": [1, 0] },
+    "externals": { "a": [0, 0], "c": [2, -1.2], "d": [2, 1.2] },
+    "legs": [
+      ["h_in", "in", "a", "v1", "H"],
+      ["b_out", "out", "c", "v1", "b"],
+      ["bbar_out", "out", "d", "v1", "bbar"]
+    ],
+    "edges": [],
+    "hideSets": [["bbar_out"], ["b_out"]]
+  },
+  {
+    "id": "ee-zh",
+    "name": "e⁺e⁻ → Z H (Higgs-strahlung)",
+    "difficulty": 4,
+    "explanation": "An electron and positron annihilate into a virtual Z, which radiates a Higgs boson and becomes a real Z. The Higgs couples to the Z with a strength proportional to the Z mass.",
+    "vertices": { "v1": [1, 0], "v2": [2, 0] },
+    "externals": { "a": [0, -1.2], "b": [0, 1.2], "c": [3, -1.2], "d": [3, 1.2] },
+    "legs": [
+      ["e_in", "in", "a", "v1", "e-"],
+      ["p_in", "in", "b", "v1", "e+"],
+      ["z_out", "out", "c", "v2", "Z"],
+      ["h_out", "out", "d", "v2", "H"]
+    ],
+    "edges": [["prop", "v1", "v2", "Z"]],
+    "hideSets": [["prop"], ["h_out"], ["prop", "h_out"]]
+  },
+  {
+    "id": "h-zzstar",
+    "name": "H → Z Z* → Z μ⁺μ⁻",
+    "difficulty": 4,
+    "explanation": "The Higgs decays to one real Z and one off-shell Z*, which then splits into a muon pair. The Higgs is lighter than two Z masses, so one of the Z bosons must be virtual.",
+    "vertices": { "v1": [1, 0], "v2": [2, 0.8] },
+    "externals": { "a": [0, 0], "c": [3, -1], "d": [3, 0.5], "e": [3, 1.7] },
+    "legs": [
+      ["h_in", "in", "a", "v1", "H"],
+      ["z_out", "out", "c", "v1", "Z"],
+      ["mu_out", "out", "d", "v2", "mu-"],
+      ["amu_out", "out", "e", "v2", "mu+"]
+    ],
+    "edges": [["zstar", "v1", "v2", "Z"]],
+    "hideSets": [["zstar"], ["amu_out"], ["zstar", "amu_out"]]
+  },
+  {
+    "id": "h-aa-w",
+    "name": "H → γγ (W-boson loop)",
+    "difficulty": 7,
+    "explanation": "The Higgs has no direct coupling to photons, so it decays to two photons through a loop of charged particles, here a W⁺ triangle. Loops of heavy W bosons and top quarks made this channel central to the 2012 Higgs discovery.",
+    "vertices": { "v1": [1, 0], "v2": [2.2, -1], "v3": [2.2, 1] },
+    "externals": { "a": [0, 0], "c": [4, -1.6], "d": [4, 1.6] },
+    "legs": [
+      ["h_in", "in", "a", "v1", "H"],
+      ["g1", "out", "c", "v2", "gamma"],
+      ["g2", "out", "d", "v3", "gamma"]
+    ],
+    "edges": [
+      ["w1", "v1", "v2", "W+"],
+      ["w2", "v2", "v3", "W+"],
+      ["w3", "v3", "v1", "W+"]
+    ],
+    "hideSets": [["w2"], ["w1", "w2"], ["w1", "w2", "w3"]]
+  },
+  {
+    "id": "h-aa-top",
+    "name": "H → γγ (top-quark loop)",
+    "difficulty": 7,
+    "explanation": "A Higgs decays to two photons through a triangle of virtual top quarks, which couple strongly to the Higgs and carry electric charge. This loop interferes destructively with the W loop.",
+    "vertices": { "v1": [1, 0], "v2": [2.2, -1], "v3": [2.2, 1] },
+    "externals": { "a": [0, 0], "c": [4, -1.6], "d": [4, 1.6] },
+    "legs": [
+      ["h_in", "in", "a", "v1", "H"],
+      ["g1", "out", "c", "v2", "gamma"],
+      ["g2", "out", "d", "v3", "gamma"]
+    ],
+    "edges": [
+      ["t1", "v1", "v2", "t"],
+      ["t2", "v2", "v3", "t"],
+      ["t3", "v3", "v1", "t"]
+    ],
+    "hideSets": [["t2"], ["t1", "t2"], ["t1", "t2", "t3"]]
+  },
+  {
+    "id": "gg-h-top",
+    "name": "g g → H (top-quark loop)",
+    "difficulty": 7,
+    "explanation": "Gluons carry no mass, so they reach the Higgs only through a loop of virtual quarks, dominated by the heavy top quark. Gluon fusion is the largest Higgs production mode at the LHC.",
+    "vertices": { "v2": [1, -1], "v3": [1, 1], "v1": [2.2, 0] },
+    "externals": { "a": [0, -1.7], "b": [0, 1.7], "c": [3.6, 0] },
+    "legs": [
+      ["g1_in", "in", "a", "v2", "g"],
+      ["g2_in", "in", "b", "v3", "g"],
+      ["h_out", "out", "c", "v1", "H"]
+    ],
+    "edges": [
+      ["t1", "v2", "v1", "t"],
+      ["t2", "v1", "v3", "t"],
+      ["t3", "v3", "v2", "t"]
+    ],
+    "hideSets": [["t1"], ["t1", "t2"], ["t1", "t2", "t3"]]
+  }
+]

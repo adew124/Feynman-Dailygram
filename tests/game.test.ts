@@ -24,7 +24,7 @@ import {
   isExternalEdge,
   makePuzzle,
 } from '../src/puzzle/generator';
-import { LIBRARY } from '../src/puzzle/library';
+import { findProcess, LIBRARY } from '../src/puzzle/library';
 import { hashString, mulberry32 } from '../src/puzzle/rng';
 import { sanitizeGameState } from '../src/storage';
 
@@ -86,7 +86,8 @@ describe('puzzle generation', () => {
   it('difficulty follows the weekday (Mon easy ... Sun hard) as closely as the library allows', () => {
     const mon = dailyPuzzle('2026-11-09');
     const sun = dailyPuzzle('2026-11-15');
-    expect(mon.difficulty).toBeLessThanOrEqual(sun.difficulty);
+    expect(mon.difficulty).toBe(1);
+    expect(sun.difficulty).toBe(7);
     expect(entriesNear(LIBRARY, 1).every((e) => e.difficulty === 1)).toBe(true);
   });
 
@@ -115,7 +116,7 @@ describe('puzzle generation', () => {
 
   it('rejects hide sets that leave external legs ambiguous', () => {
     // hiding both muon legs in ee->mumu allows quarks, taus, W pairs, ... : not a fair puzzle
-    const e = LIBRARY.find((x) => x.id === 'ee-mumu')!;
+    const e = findProcess('ee-mumu')!;
     expect(acceptableHideSet(e.diagram, ['mu_out', 'amu_out'])).toBe(false);
     expect(acceptableHideSet(e.diagram, [])).toBe(false);
     expect(chooseHidden(e, 'whatever').length).toBeGreaterThan(0);
@@ -123,7 +124,7 @@ describe('puzzle generation', () => {
 });
 
 describe('game state', () => {
-  const entry = LIBRARY.find((e) => e.id === 'beta-minus')!;
+  const entry = findProcess('beta-minus')!;
   const puzzle = { ...makePuzzle(entry, 's'), hidden: ['W', 'nubar'] };
 
   it('starts empty and cannot be submitted incomplete', () => {
@@ -177,7 +178,7 @@ describe('game state', () => {
   });
 
   it('accepts any valid answer: gamma, Z or H for the e+e- propagator', () => {
-    const p = { ...makePuzzle(LIBRARY[0], 's'), hidden: ['prop'] };
+    const p = { ...makePuzzle(findProcess('ee-mumu')!, 's'), hidden: ['prop'] };
     for (const prop of ['gamma', 'Z', 'H']) {
       const g = submit(p, setAnswer(newGame(p), 'prop', prop));
       expect(g.status, prop).toBe('won');
@@ -280,7 +281,7 @@ describe('stats and streaks', () => {
 });
 
 describe('saved progress sanitizing', () => {
-  const p = makePuzzle(LIBRARY[1], 'x');
+  const p = makePuzzle(findProcess('beta-minus')!, 'x');
   it('accepts a valid saved game and rejects wrong puzzle or junk', () => {
     const g = submit(p, setAnswer(setAnswer(newGame(p), p.hidden[0], 'W+'), p.hidden[p.hidden.length - 1], 'mu-'));
     expect(sanitizeGameState(JSON.parse(JSON.stringify(g)), p)).toEqual(g);

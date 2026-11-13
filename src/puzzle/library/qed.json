@@ -1,0 +1,167 @@
+[
+  {
+    "id": "ee-mumu",
+    "name": "e⁺e⁻ → μ⁺μ⁻",
+    "difficulty": 1,
+    "explanation": "An electron and positron annihilate into a virtual photon, which converts into a muon–antimuon pair. At higher energies the Z boson also contributes through the same diagram topology.",
+    "vertices": { "v1": [1, 0], "v2": [2, 0] },
+    "externals": { "a": [0, -1.2], "b": [0, 1.2], "c": [3, -1.2], "d": [3, 1.2] },
+    "legs": [
+      ["e_in", "in", "a", "v1", "e-"],
+      ["p_in", "in", "b", "v1", "e+"],
+      ["mu_out", "out", "c", "v2", "mu-"],
+      ["amu_out", "out", "d", "v2", "mu+"]
+    ],
+    "edges": [["prop", "v1", "v2", "gamma"]],
+    "hideSets": [["prop"], ["prop", "amu_out"], ["mu_out"]]
+  },
+  {
+    "id": "moller",
+    "name": "e⁻e⁻ → e⁻e⁻ (Møller scattering)",
+    "difficulty": 1,
+    "explanation": "Two electrons repel by exchanging a virtual photon, a purely electromagnetic t-channel process. Each electron line keeps its identity because electron number is conserved along each fermion line.",
+    "vertices": { "v1": [1.5, -0.8], "v2": [1.5, 0.8] },
+    "externals": { "a": [0, -1.5], "b": [0, 1.5], "c": [3, -1.5], "d": [3, 1.5] },
+    "legs": [
+      ["e1_in", "in", "a", "v1", "e-"],
+      ["e1_out", "out", "c", "v1", "e-"],
+      ["e2_in", "in", "b", "v2", "e-"],
+      ["e2_out", "out", "d", "v2", "e-"]
+    ],
+    "edges": [["photon", "v1", "v2", "gamma"]],
+    "hideSets": [["photon"], ["e2_out"], ["photon", "e2_out"]]
+  },
+  {
+    "id": "e-mu-scattering",
+    "name": "e⁻μ⁻ → e⁻μ⁻",
+    "difficulty": 1,
+    "explanation": "An electron scatters off a muon by exchanging a virtual photon. The electron and muon lines never mix, because electron and muon lepton numbers are separately conserved.",
+    "vertices": { "v1": [1.5, -0.8], "v2": [1.5, 0.8] },
+    "externals": { "a": [0, -1.5], "b": [0, 1.5], "c": [3, -1.5], "d": [3, 1.5] },
+    "legs": [
+      ["e_in", "in", "a", "v1", "e-"],
+      ["e_out", "out", "c", "v1", "e-"],
+      ["mu_in", "in", "b", "v2", "mu-"],
+      ["mu_out", "out", "d", "v2", "mu-"]
+    ],
+    "edges": [["photon", "v1", "v2", "gamma"]],
+    "hideSets": [["photon"], ["mu_out"], ["photon", "mu_out"]]
+  },
+  {
+    "id": "bhabha",
+    "name": "e⁺e⁻ → e⁺e⁻ (Bhabha, s-channel)",
+    "difficulty": 2,
+    "explanation": "An electron and positron annihilate into a virtual photon that re-creates an e⁺e⁻ pair. The full Bhabha cross-section also needs a t-channel diagram, because the final state matches the initial one.",
+    "vertices": { "v1": [1, 0], "v2": [2, 0] },
+    "externals": { "a": [0, -1.2], "b": [0, 1.2], "c": [3, -1.2], "d": [3, 1.2] },
+    "legs": [
+      ["e_in", "in", "a", "v1", "e-"],
+      ["p_in", "in", "b", "v1", "e+"],
+      ["e_out", "out", "c", "v2", "e-"],
+      ["p_out", "out", "d", "v2", "e+"]
+    ],
+    "edges": [["prop", "v1", "v2", "gamma"]],
+    "hideSets": [["prop"], ["p_out"], ["prop", "p_out"]]
+  },
+  {
+    "id": "compton",
+    "name": "Compton scattering e⁻γ → e⁻γ",
+    "difficulty": 2,
+    "explanation": "A photon scatters off an electron: the electron absorbs the photon, becoming a virtual electron, then emits a new photon. The internal line must again be an electron to conserve charge and lepton number.",
+    "vertices": { "v1": [1, 0], "v2": [2, 0] },
+    "externals": { "a": [0, -1.2], "b": [0, 1.2], "c": [3, -1.2], "d": [3, 1.2] },
+    "legs": [
+      ["e_in", "in", "a", "v1", "e-"],
+      ["g_in", "in", "b", "v1", "gamma"],
+      ["e_out", "out", "c", "v2", "e-"],
+      ["g_out", "out", "d", "v2", "gamma"]
+    ],
+    "edges": [["prop", "v1", "v2", "e-"]],
+    "hideSets": [["prop"], ["e_out"], ["prop", "e_out"]]
+  },
+  {
+    "id": "ee-gammagamma",
+    "name": "e⁺e⁻ → γγ",
+    "difficulty": 2,
+    "explanation": "An electron and positron annihilate into two photons through a virtual electron exchanged between the two vertices. Two photons are needed because a single photon cannot conserve both energy and momentum.",
+    "vertices": { "v1": [1, -0.7], "v2": [1, 0.7] },
+    "externals": { "a": [0, -1.4], "b": [0, 1.4], "c": [3, -1.4], "d": [3, 1.4] },
+    "legs": [
+      ["e_in", "in", "a", "v1", "e-"],
+      ["p_in", "in", "b", "v2", "e+"],
+      ["g1", "out", "c", "v1", "gamma"],
+      ["g2", "out", "d", "v2", "gamma"]
+    ],
+    "edges": [["prop", "v1", "v2", "e-"]],
+    "hideSets": [["prop"], ["p_in"], ["prop", "p_in"]]
+  },
+  {
+    "id": "gammagamma-ee",
+    "name": "γγ → e⁺e⁻",
+    "difficulty": 2,
+    "explanation": "Two photons collide and create an electron–positron pair, converting light into matter. A virtual electron links the two photon vertices.",
+    "vertices": { "v1": [1, -0.7], "v2": [1, 0.7] },
+    "externals": { "a": [0, -1.4], "b": [0, 1.4], "c": [3, -1.4], "d": [3, 1.4] },
+    "legs": [
+      ["g1_in", "in", "a", "v1", "gamma"],
+      ["g2_in", "in", "b", "v2", "gamma"],
+      ["e_out", "out", "c", "v1", "e-"],
+      ["p_out", "out", "d", "v2", "e+"]
+    ],
+    "edges": [["prop", "v2", "v1", "e-"]],
+    "hideSets": [["prop"], ["p_out"], ["e_out"]]
+  },
+  {
+    "id": "electron-self-energy",
+    "name": "Electron self-energy",
+    "difficulty": 5,
+    "explanation": "An electron emits a virtual photon and reabsorbs it, forming a loop that corrects the electron propagator. Such loops are the origin of mass renormalization in QED.",
+    "vertices": { "v1": [1, 0], "v2": [2.4, 0] },
+    "externals": { "a": [0, 0], "c": [3.4, 0] },
+    "legs": [
+      ["e_in", "in", "a", "v1", "e-"],
+      ["e_out", "out", "c", "v2", "e-"]
+    ],
+    "edges": [
+      ["e_int", "v1", "v2", "e-"],
+      ["loop", "v1", "v2", "gamma", -0.9]
+    ],
+    "hideSets": [["e_int"], ["loop"], ["e_int", "loop"]]
+  },
+  {
+    "id": "vertex-correction",
+    "name": "QED vertex correction",
+    "difficulty": 6,
+    "explanation": "A virtual photon is emitted and reabsorbed by the electron around its interaction with an external photon. This one-loop diagram gives the leading correction to the electron's magnetic moment, the anomalous g-2.",
+    "vertices": { "v1": [1, 0], "v2": [2, 0], "v3": [3, 0] },
+    "externals": { "a": [0, 0], "c": [4, 0], "b": [2, 1.6] },
+    "legs": [
+      ["e_in", "in", "a", "v1", "e-"],
+      ["e_out", "out", "c", "v3", "e-"],
+      ["g_in", "in", "b", "v2", "gamma"]
+    ],
+    "edges": [
+      ["e1", "v1", "v2", "e-"],
+      ["e2", "v2", "v3", "e-"],
+      ["loop", "v1", "v3", "gamma", -1.2]
+    ],
+    "hideSets": [["e1", "e2"], ["loop"], ["e1", "loop"]]
+  },
+  {
+    "id": "vacuum-polarization",
+    "name": "Vacuum polarization",
+    "difficulty": 6,
+    "explanation": "A photon briefly fluctuates into a virtual fermion–antifermion pair and then recombines. This loop screens electric charge and makes the electromagnetic coupling run with energy.",
+    "vertices": { "v1": [1, 0], "v2": [2.4, 0] },
+    "externals": { "a": [0, 0], "c": [3.4, 0] },
+    "legs": [
+      ["g_in", "in", "a", "v1", "gamma"],
+      ["g_out", "out", "c", "v2", "gamma"]
+    ],
+    "edges": [
+      ["loop_a", "v1", "v2", "e-", -0.8],
+      ["loop_b", "v2", "v1", "e-", -0.8]
+    ],
+    "hideSets": [["loop_a"], ["loop_b"], ["loop_a", "loop_b"]]
+  }
+]
