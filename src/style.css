@@ -9,6 +9,7 @@
   --bad: #d23a3a;
   --empty: #8a8996;
   --border: #e4e2dc;
+  --warn: #c98a00;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
@@ -22,6 +23,7 @@
     --bad: #ff6b6b;
     --empty: #8c8aa0;
     --border: #2d2c3a;
+    --warn: #f0b429;
   }
 }
 :root[data-theme='dark'] {
@@ -35,6 +37,7 @@
   --bad: #ff6b6b;
   --empty: #8c8aa0;
   --border: #2d2c3a;
+  --warn: #f0b429;
 }
 
 * {
@@ -110,6 +113,20 @@ svg.feynman .vertex.v-ok {
 svg.feynman .vertex.v-error {
   fill: var(--bad);
 }
+svg.feynman .vnum {
+  fill: #fff;
+  font: 700 11px system-ui, sans-serif;
+  pointer-events: none;
+}
+svg.feynman .s-partial .stroke {
+  stroke: var(--warn);
+}
+svg.feynman .s-partial .arrowhead {
+  fill: var(--warn);
+}
+svg.feynman .label.s-partial {
+  fill: var(--warn);
+}
 svg.feynman .label {
   fill: var(--text);
   font-size: 23px;
@@ -172,3 +189,56 @@ svg.feynman .hit {
   pointer-events: stroke;
   cursor: pointer;
 }
+
+/* ---------- game UI ---------- */
+.top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.top h1 { margin: 4px 0 0; }
+.top-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.attempts { display: flex; gap: 6px; }
+.dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--muted); display: inline-block; }
+.dot.used { background: var(--muted); }
+button { font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; cursor: pointer; min-height: 44px; }
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+button.ghost { background: transparent; }
+button.icon { min-height: 36px; padding: 4px 10px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.actions button { flex: 1; }
+.card.diagram { padding: 8px; }
+.tip { text-align: center; }
+.muted { color: var(--muted); }
+.hints { border: 1px solid var(--bad); border-radius: 12px; padding: 8px 12px; margin: 10px 0; background: color-mix(in srgb, var(--bad) 8%, var(--surface)); }
+.hints ul { margin: 4px 0 0; padding-left: 18px; }
+.creator { font-style: italic; color: var(--muted); }
+
+.palette .tabs { display: flex; gap: 6px; margin-bottom: 10px; }
+.tab { flex: 1; padding: 8px 6px; min-height: 40px; }
+.tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+button.anti { flex: 0 0 auto; }
+button.anti.on { background: var(--text); color: var(--bg); }
+.pgrid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+.pbtn { padding: 8px 0; font-size: 1.25rem; font-family: 'Cambria Math', 'STIX Two Math', 'Times New Roman', serif; min-height: 48px; }
+.pbtn sub { font-size: 0.65em; }
+.pbtn.chosen { background: var(--accent); border-color: var(--accent); color: #fff; }
+.clear { margin-top: 10px; width: 100%; min-height: 36px; padding: 6px; font-size: 0.9rem; }
+
+.result h2 { margin: 0 0 6px; }
+.pill { font-size: 0.75rem; background: var(--border); border-radius: 999px; padding: 2px 8px; margin-left: 6px; font-weight: 500; }
+.emoji { font-size: 1.4rem; line-height: 1.5; margin: 10px 0; }
+.share-pre { white-space: pre-wrap; background: var(--bg); padding: 8px; border-radius: 8px; user-select: all; }
+.next { margin-bottom: 0; }
+
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 999px; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+.toast.show { opacity: 1; }
+
+dialog { border: 1px solid var(--border); border-radius: 16px; background: var(--surface); color: var(--text); padding: 0; width: min(92vw, 420px); }
+dialog::backdrop { background: rgba(0, 0, 0, 0.5); }
+.dlg-body { padding: 18px; }
+.dlg-body h2 { margin-top: 0; }
+.dlg-body button { width: 100%; margin-top: 14px; }
+.stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); text-align: center; gap: 6px; }
+.stat-grid b { display: block; font-size: 1.6rem; }
+.stat-grid span { font-size: 0.75rem; color: var(--muted); }
+.dist h3, .dlg-body h3 { font-size: 0.85rem; color: var(--muted); }
+.bar-row { display: flex; gap: 8px; align-items: center; margin: 4px 0; }
+.bar { background: var(--accent); color: #fff; border-radius: 4px; padding: 0 8px; text-align: right; font-size: 0.85rem; }

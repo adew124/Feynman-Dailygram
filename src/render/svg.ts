@@ -43,7 +43,11 @@ export function sceneToSvg(scene: Scene, ariaLabel = 'Feynman diagram'): string 
   // 2. vertices
   parts.push('<g class="vertices">');
   for (const v of scene.vertices) {
-    parts.push(`<circle class="vertex v-${v.state}" cx="${v.x.toFixed(1)}" cy="${v.y.toFixed(1)}" r="4" data-vertex="${escapeXml(v.id)}"/>`);
+    const r = v.label ? 9 : 4;
+    parts.push(`<circle class="vertex v-${v.state}" cx="${v.x.toFixed(1)}" cy="${v.y.toFixed(1)}" r="${r}" data-vertex="${escapeXml(v.id)}"/>`);
+    if (v.label) {
+      parts.push(`<text class="vnum" x="${v.x.toFixed(1)}" y="${v.y.toFixed(1)}" text-anchor="middle" dominant-baseline="central">${escapeXml(v.label)}</text>`);
+    }
   }
   parts.push('</g>');
   // 3. labels

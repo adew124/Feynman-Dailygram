@@ -3,7 +3,7 @@ import { getParticle, type ParticleId } from '../engine/particles';
 import type { Diagram } from '../engine/types';
 import type { LineKind } from './lines';
 
-export type EdgeState = 'normal' | 'empty' | 'filled' | 'selected' | 'correct' | 'wrong';
+export type EdgeState = 'normal' | 'empty' | 'filled' | 'selected' | 'correct' | 'partial' | 'wrong';
 
 /** What to draw for one edge. */
 export interface EdgeView {
@@ -31,6 +31,7 @@ export interface ViewOptions {
   revealKinds?: boolean;
   wrong?: readonly string[];
   correct?: readonly string[];
+  partial?: readonly string[];
 }
 
 /**
@@ -43,6 +44,7 @@ export function buildEdgeViews(d: Diagram, o: ViewOptions = {}): Record<string, 
   const hidden = new Set(o.hidden ?? []);
   const wrong = new Set(o.wrong ?? []);
   const correct = new Set(o.correct ?? []);
+  const partial = new Set(o.partial ?? []);
   const out: Record<string, EdgeView> = {};
   for (const e of d.edges) {
     let state: EdgeState = 'normal';
@@ -60,6 +62,7 @@ export function buildEdgeViews(d: Diagram, o: ViewOptions = {}): Record<string, 
         if (!o.revealKinds) kind = 'unknown';
       }
       if (o.selected === e.id) state = 'selected';
+      if (partial.has(e.id)) state = 'partial';
       if (wrong.has(e.id)) state = 'wrong';
       if (correct.has(e.id)) state = 'correct';
     } else if (e.particle) {

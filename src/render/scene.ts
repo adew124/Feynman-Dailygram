@@ -21,6 +21,8 @@ export interface SceneVertex {
   x: number;
   y: number;
   state: 'normal' | 'ok' | 'error';
+  /** Small number drawn next to the vertex (used by hints: "vertex 2"). */
+  label?: string;
 }
 
 export interface Scene {
@@ -38,6 +40,7 @@ export interface SceneOptions {
   minHeight?: number;
   padding?: number;
   vertexStates?: Record<string, 'ok' | 'error'>;
+  vertexLabels?: Record<string, string>;
   /** Draw an arrowhead on unknown (hidden) edges? Default false: an arrow would leak "this is a fermion". */
   arrowOnUnknown?: boolean;
 }
@@ -161,6 +164,7 @@ export function buildScene(d: Diagram, views: Record<string, EdgeView>, o: Scene
     id: n.id,
     ...P(n.id),
     state: o.vertexStates?.[n.id] ?? 'normal',
+    label: o.vertexLabels?.[n.id],
   }));
 
   const axisY = H - 14;
