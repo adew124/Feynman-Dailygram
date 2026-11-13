@@ -1,4 +1,4 @@
-import { solve } from '../engine/solver';
+import { solveWithInfo } from '../engine/solver';
 import type { Diagram } from '../engine/types';
 import { weekday } from '../game/dates';
 import { LIBRARY } from './library';
@@ -14,6 +14,28 @@ export function isExternalEdge(d: Diagram, edgeId: string): boolean {
   return kind.get(e.from) === 'external' || kind.get(e.to) === 'external';
 }
 
+export interface HideReport {
+  /** Number of valid completions found (capped at MAX_SOLUTIONS + 1). */
+  solutions: number;
+  /** More than MAX_SOLUTIONS valid completions (or the search budget ran out). */
+  tooOpen: boolean;
+  /** Hidden external legs that could be more than one particle (the process could change). */
+  ambiguousExternals: string[];
+}
+
+export function analyzeHideSet(d: Diagram, hidden: readonly string[]): HideReport {
+  const info = solveWithInfo(d, hidden, MAX_SOLUTIONS + 1);
+  const sols = info.solutions;
+  const ambiguousExternals = hidden.filter(
+    (id) => isExternalEdge(d, id) && new Set(sols.map((s) => s[id])).size !== 1,
+  );
+  return {
+    solutions: sols.length,
+    tooOpen: sols.length > MAX_SOLUTIONS || (!info.exhausted && sols.length < MAX_SOLUTIONS + 1),
+    ambiguousExternals,
+  };
+}
+
 /**
  * Is `hidden` a good set of edges to hide?
  *  - solvable: the engine finds at least one valid completion (the reference
@@ -25,12 +47,8 @@ export function isExternalEdge(d: Diagram, edgeId: string): boolean {
  */
 export function acceptableHideSet(d: Diagram, hidden: readonly string[]): boolean {
   if (hidden.length === 0) return false;
-  const sols = solve(d, hidden, MAX_SOLUTIONS + 1);
-  if (sols.length < 1 || sols.length > MAX_SOLUTIONS) return false;
-  for (const id of hidden) {
-    if (isExternalEdge(d, id) && new Set(sols.map((s) => s[id])).size !== 1) return false;
-  }
-  return true;
+  const r = analyzeHideSet(d, hidden);
+  return r.solutions >= 1 && !r.tooOpen && r.ambiguousExternals.length === 0;
 }
 
 /** How many edges to hide, by difficulty. */

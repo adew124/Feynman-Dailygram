@@ -30,6 +30,8 @@ export interface Scene {
   height: number;
   edges: SceneEdge[];
   vertices: SceneVertex[];
+  /** Layout-unit -> pixel mapping, so editors can convert pointer positions back. */
+  transform: { offX: number; offY: number; scale: number; minX: number; minY: number };
   /** Position of the small "time" arrow drawn at the bottom. */
   timeAxis: { x0: number; x1: number; y: number };
 }
@@ -41,6 +43,8 @@ export interface SceneOptions {
   padding?: number;
   vertexStates?: Record<string, 'ok' | 'error'>;
   vertexLabels?: Record<string, string>;
+  /** Fixed layout bounds (editor): keeps the scale constant while nodes move. */
+  bounds?: { minX: number; maxX: number; minY: number; maxY: number };
   /** Draw an arrowhead on unknown (hidden) edges? Default false: an arrow would leak "this is a fermion". */
   arrowOnUnknown?: boolean;
 }
@@ -96,10 +100,10 @@ export function buildScene(d: Diagram, views: Record<string, EdgeView>, o: Scene
     xs.push((a.x + c.x) / 2 - ((c.y - a.y) / len) * b);
     ys.push((a.y + c.y) / 2 + ((c.x - a.x) / len) * b);
   }
-  const minX = Math.min(...xs);
-  const maxX = Math.max(...xs);
-  const minY = Math.min(...ys);
-  const maxY = Math.max(...ys);
+  const minX = o.bounds ? o.bounds.minX : Math.min(...xs);
+  const maxX = o.bounds ? o.bounds.maxX : Math.max(...xs);
+  const minY = o.bounds ? o.bounds.minY : Math.min(...ys);
+  const maxY = o.bounds ? o.bounds.maxY : Math.max(...ys);
   const bw = Math.max(maxX - minX, 1e-6);
   const bh = Math.max(maxY - minY, 1e-6);
   // leave room at the bottom for the time axis
@@ -173,6 +177,7 @@ export function buildScene(d: Diagram, views: Record<string, EdgeView>, o: Scene
     height: H,
     edges,
     vertices,
+    transform: { offX, offY, scale, minX, minY },
     timeAxis: { x0: W / 2 - 34, x1: W / 2 + 34, y: axisY },
   };
 }

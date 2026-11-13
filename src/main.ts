@@ -1,8 +1,10 @@
 import { mountGallery } from './demo/gallery';
+import { decodeShared, HASH_PREFIX, puzzleFromShared } from './editor/share';
 import { dayNumber, isValidKey, todayKey } from './game/dates';
 import { recordResult } from './game/stats';
 import { dailyPuzzle } from './puzzle/generator';
-import { loadDaily, loadStats, saveDaily, saveStats } from './storage';
+import { loadDaily, loadShared, loadStats, saveDaily, saveShared, saveStats } from './storage';
+import { mountEditor } from './ui/editor';
 import { mountGame } from './ui/game';
 import { mountPractice } from './ui/practice';
 import { showStatsDialog } from './ui/statsDialog';
@@ -12,7 +14,7 @@ const app = document.getElementById('app')!;
 app.innerHTML = '<nav class="nav" id="nav"></nav><div id="view"></div>';
 const nav = document.getElementById('nav')!;
 const view = document.getElementById('view')!;
-let current: { destroy(): void } | null = null;
+let current: { destroy(): void } | null | undefined = null;
 
 /** `?date=YYYY-MM-DD` previews another day's puzzle (handy for testing). */
 function activeDateKey(): { key: string; isToday: boolean } {
@@ -22,13 +24,16 @@ function activeDateKey(): { key: string; isToday: boolean } {
   return { key: today, isToday: true };
 }
 
-type Route = 'daily' | 'practice' | 'library';
+type Route = 'daily' | 'practice' | 'create' | 'library' | null;
 
 function renderNav(active: Route) {
   const link = (r: Route, href: string, label: string) =>
     `<a href="${href}"${r === active ? ' class="active" aria-current="page"' : ''}>${label}</a>`;
   nav.innerHTML =
-    link('daily', '#/', 'Daily') + link('practice', '#/practice', 'Practice') + link('library', '#/library', 'Library');
+    link('daily', '#/', 'Daily') +
+    link('practice', '#/practice', 'Practice') +
+    link('create', '#/editor', 'Create') +
+    link('library', '#/library', 'Library');
 }
 
 function route() {
@@ -36,7 +41,13 @@ function route() {
   current = null;
   view.innerHTML = '';
   const hash = location.hash;
-  if (hash.startsWith('#/library') || hash.startsWith('#/demo')) {
+  if (hash.startsWith(HASH_PREFIX)) {
+    renderNav(null);
+    current = startShared(hash.slice(HASH_PREFIX.length));
+  } else if (hash.startsWith('#/editor')) {
+    renderNav('create');
+    current = mountEditor(view);
+  } else if (hash.startsWith('#/library') || hash.startsWith('#/demo')) {
     renderNav('library');
     mountGallery(view);
   } else if (hash.startsWith('#/practice')) {
@@ -46,6 +57,23 @@ function route() {
     renderNav('daily');
     current = startDaily();
   }
+}
+
+function startShared(compressed: string) {
+  const r = decodeShared(compressed);
+  if (!r.ok) {
+    view.innerHTML = `<div class="card"><h2>Can't open this puzzle</h2><p>${r.error}</p><p><a href="#/">Today's puzzle</a> · <a href="#/editor">Make your own</a></p></div>`;
+    return null;
+  }
+  const puzzle = puzzleFromShared(r.data, r.key);
+  return mountGame(view, puzzle, {
+    initial: loadShared(r.key, puzzle),
+    shareLabel: 'Feynman Puzzle',
+    shareUrl: location.href,
+    onChange: (s) => saveShared(r.key, s),
+    finishedExtra: () =>
+      `<p class="sub">Made by a friend with the puzzle editor. <a href="#/editor">Make your own</a> · <a href="#/">Today's puzzle</a></p>`,
+  });
 }
 
 function startDaily() {

@@ -30,6 +30,22 @@ function vertexConsistent(d: Diagram, v: string): boolean {
  * Assignments are in the stored (along-the-arrow) convention.
  */
 export function solve(diagram: Diagram, free: readonly string[], limit = 1000): Assignment[] {
+  return solveWithInfo(diagram, free, limit).solutions;
+}
+
+export interface SolveInfo {
+  solutions: Assignment[];
+  /** False if the search stopped early (solution limit or step budget hit). */
+  exhausted: boolean;
+}
+
+/** Like solve(), but also reports whether the whole search space was explored. */
+export function solveWithInfo(
+  diagram: Diagram,
+  free: readonly string[],
+  limit = 1000,
+  maxSteps = 3_000_000,
+): SolveInfo {
   const work: Diagram = {
     nodes: diagram.nodes,
     edges: diagram.edges.map((e) => (free.includes(e.id) ? { ...e, particle: null } : { ...e })),
@@ -41,11 +57,13 @@ export function solve(diagram: Diagram, free: readonly string[], limit = 1000): 
     return verts.filter((v) => v === e.from || v === e.to);
   };
 
-  if (!verts.every((v) => vertexConsistent(work, v))) return [];
+  if (!verts.every((v) => vertexConsistent(work, v))) return { solutions: [], exhausted: true };
 
   const results: Assignment[] = [];
+  let steps = 0;
+  let stopped = false;
   const rec = (i: number) => {
-    if (results.length >= limit) return;
+    if (results.length >= limit || stopped) return;
     if (i === free.length) {
       const a: Assignment = {};
       for (const id of free) a[id] = byId.get(id)!.particle!;
@@ -54,12 +72,16 @@ export function solve(diagram: Diagram, free: readonly string[], limit = 1000): 
     }
     const e = byId.get(free[i])!;
     for (const p of ALL_PARTICLE_IDS) {
+      if (++steps > maxSteps) {
+        stopped = true;
+        break;
+      }
       e.particle = p;
       if (touching(e.id).every((v) => vertexConsistent(work, v))) rec(i + 1);
-      if (results.length >= limit) break;
+      if (results.length >= limit || stopped) break;
     }
     e.particle = null;
   };
   rec(0);
-  return results;
+  return { solutions: results, exhausted: !stopped && results.length < limit };
 }

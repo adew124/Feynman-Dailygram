@@ -252,3 +252,24 @@ select { font: inherit; color: var(--text); background: var(--surface); border: 
 button.wide { width: 100%; }
 a { color: var(--accent); }
 code { font-size: 0.85em; }
+
+/* ---------- editor ---------- */
+.tools { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; margin: 8px 0 4px; }
+.tools button { min-width: 0; padding: 8px 2px; font-size: 0.88rem; white-space: nowrap; }
+.tools .tool.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.tool-hint { margin: 4px 0 8px; }
+.canvas { touch-action: none; user-select: none; -webkit-user-select: none; }
+svg.feynman .grid circle { fill: var(--border); }
+svg.feynman .handle { fill: transparent; cursor: grab; }
+svg.feynman .ext-dot { fill: var(--surface); stroke: var(--line); stroke-width: 2; pointer-events: none; }
+svg.feynman .sel-ring { fill: none; stroke: var(--accent); stroke-width: 2.5; pointer-events: none; }
+svg.feynman .preview { stroke: var(--accent); stroke-width: 2.5; stroke-dasharray: 5 5; pointer-events: none; }
+.field { display: block; margin: 6px 0; font-weight: 500; }
+.field input, .field textarea, .linkfield { display: block; width: 100%; margin-top: 4px; font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px; }
+.linkfield { font-size: 0.8rem; }
+.problems { margin: 6px 0 0; padding-left: 18px; }
+.problems li { color: var(--bad); margin: 3px 0; }
+.ok-line { color: var(--ok); font-weight: 600; margin: 0; }
+.warn-line { color: var(--warn); margin: 6px 0 0; }
+button.toggle.on { background: var(--warn); border-color: var(--warn); color: #1c1b22; font-weight: 600; }
+#ed-inspector h3 { margin: 0 0 4px; font-size: 1rem; }

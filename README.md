@@ -15,7 +15,7 @@ npm run dev     # open the printed local URL (works well in a phone-sized window
 - [x] Phase 2: SVG renderer (`src/render`, demo gallery at `#/demo`)
 - [x] Phase 3: daily gameplay (`src/game`, `src/puzzle`, `src/ui`)
 - [x] Phase 4: process library (51 processes) + practice mode
-- [ ] Phase 5: editor + sharing
+- [x] Phase 5: editor + sharing (`src/editor`, `src/ui/editor.ts`)
 - [ ] Phase 6: polish + deploy
 
 ## Engine conventions
@@ -89,3 +89,26 @@ Add an object to any array in `src/puzzle/library/*.json` (or create a new `*.js
 - Run `npm test`: it checks that your diagram is a valid, fully assigned Standard Model diagram, that the
   layout is sane, that the explanation is 2-3 sentences, and that a fair hide set exists. The error
   messages name the vertex and the law that is violated, so mistakes are easy to find.
+
+## Puzzle editor and sharing (`#/editor`)
+1. Pick a tool: **Vertex** (tap to place), **Line** (drag from a vertex to another vertex, or into empty
+   space for an external leg), **Move** (drag points), **Delete**. Positions snap to a half-unit grid.
+   Or start from any library process with the dropdown and modify it.
+2. Select a line and choose the particle you would write on it (forward in time). Antiparticles get
+   backward arrows automatically, so you never draw arrows by hand. Vertices turn green when they are
+   valid Standard Model vertices and red otherwise; the status box explains every problem
+   ("Vertex 2: Electric charge is not conserved here (net -2 e)").
+3. Switch on **Hidden from the player** for the lines to solve (amber in the editor).
+4. Sharing is blocked until the whole diagram is connected, fully assigned, valid at every vertex, has at
+   least one hidden line, and no hidden *external* leg could be several particles (that would change the
+   process). A very open puzzle (more than 60 valid answers) only gets a warning.
+5. **Test play** lets you solve your own puzzle; **Copy share link** gives
+   `https://<site>/#p=<compressed puzzle>`. Add an optional title and message; they are shown to the player.
+
+How links work: the puzzle is stored as compact JSON, compressed with lz-string and put in the URL hash,
+so there is no server. The JSON contains the creator's complete answer, which the app uses to check
+progress, so someone determined could decode a link and read it. Links are treated as untrusted input:
+size caps, schema checks, unknown particles, broken geometry and diagrams that violate a conservation law are
+all rejected with a friendly message, and text is always escaped before display. Progress on a shared puzzle
+is saved in localStorage per puzzle and never counts toward daily stats. Your in-progress editor draft is
+saved automatically in localStorage.

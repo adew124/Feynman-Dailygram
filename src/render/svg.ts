@@ -25,12 +25,20 @@ export function symbolToTspans(sym: string): string {
   return out;
 }
 
-export function sceneToSvg(scene: Scene, ariaLabel = 'Feynman diagram'): string {
+export interface SvgLayers {
+  /** Extra SVG drawn beneath everything (e.g. an editor grid). */
+  under?: string;
+  /** Extra SVG drawn on top of everything (e.g. drag handles). */
+  over?: string;
+}
+
+export function sceneToSvg(scene: Scene, ariaLabel = 'Feynman diagram', layers: SvgLayers = {}): string {
   const { width: W, height: H } = scene;
   const parts: string[] = [];
   parts.push(
     `<svg class="feynman" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapeXml(ariaLabel)}" preserveAspectRatio="xMidYMid meet">`,
   );
+  if (layers.under) parts.push(layers.under);
   // 1. strokes
   parts.push('<g class="strokes">');
   for (const e of scene.edges) {
@@ -71,6 +79,7 @@ export function sceneToSvg(scene: Scene, ariaLabel = 'Feynman diagram'): string 
     parts.push(`<path class="hit" d="${e.hitD}" data-edge-hit="${escapeXml(e.id)}"/>`);
   }
   parts.push('</g>');
+  if (layers.over) parts.push(layers.over);
   parts.push('</svg>');
   return parts.join('');
 }

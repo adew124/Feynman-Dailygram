@@ -77,3 +77,20 @@ export function loadDaily(dateKey: string, p: Puzzle): GameState | null {
 export function saveDaily(dateKey: string, s: GameState): void {
   writeRaw(`daily:${dateKey}`, JSON.stringify(s));
 }
+
+export function loadShared(key: string, p: Puzzle): GameState | null {
+  return sanitizeGameState(readJson(`shared:${key}`), p);
+}
+
+export function saveShared(key: string, s: GameState): void {
+  writeRaw(`shared:${key}`, JSON.stringify(s));
+}
+
+/** Raw JSON access for the editor draft (sanitized by the caller). */
+export function loadDraftRaw(): unknown {
+  return readJson('editor-draft');
+}
+
+export function saveDraftRaw(value: unknown): void {
+  writeRaw('editor-draft', JSON.stringify(value));
+}
